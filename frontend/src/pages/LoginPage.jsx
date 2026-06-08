@@ -51,10 +51,7 @@ export default function LoginPage() {
           <div className="auth-logo">
             <School size={28} />
           </div>
-          <div className="auth-brand-text">
-            <span className="auth-logo-text">School<span className="auth-logo-accent">MS</span></span>
-            <span className="auth-brand-full">{BRAND.fullName}</span>
-          </div>
+          <span className="auth-logo-text auth-logo-full">{BRAND.fullName}</span>
         </div>
         <div className="auth-left-content">
           <h2 className="auth-tagline">Run your entire school from one platform.</h2>

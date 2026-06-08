@@ -1,146 +1,106 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { School, LogOut, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
+import { Check, ArrowRight, Loader2, Lock, ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { BRAND } from "../config/brand";
-import { SETUP_STEPS, isStepDone, getSetupProgress } from "../config/setupSteps";
+import {
+  SETUP_STEPS,
+  isStepDone,
+  isStepUnlocked,
+  getSetupProgress,
+  getStepPath,
+} from "../config/setupSteps";
 import useSetupStatus from "../hooks/useSetupStatus";
-import useApi from "../hooks/useApi";
-import ThemeToggle from "../components/ThemeToggle";
-import CampusesPanel from "../components/CampusesPanel";
-import SubjectsPanel from "../components/SubjectsPanel";
-import SectionsPanel from "../components/SectionsPanel";
-import TimetablePanel from "../components/TimetablePanel";
-import SetupStudentsStep from "../components/SetupStudentsStep";
-import Toast from "../components/Toast";
+import SetupLayout from "../components/SetupLayout";
 
 export default function SetupPage() {
-  const { admin, logout } = useAuth();
+  const { admin } = useAuth();
   const navigate = useNavigate();
-  const api = useApi();
-  const { counts, loading, refresh, isComplete } = useSetupStatus();
-  const [activeStep, setActiveStep] = useState("campuses");
-  const [toasts, setToasts] = useState([]);
-
-  const showToast = useCallback((message, type = "success") => {
-    const id = Date.now();
-    setToasts((t) => [...t, { id, message, type }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500);
-  }, []);
+  const { counts, loading, isComplete } = useSetupStatus();
 
   useEffect(() => {
     if (!loading && isComplete) navigate("/", { replace: true });
   }, [loading, isComplete, navigate]);
 
-  useEffect(() => {
-    if (isStepDone(activeStep, counts)) {
-      const currentIdx = SETUP_STEPS.findIndex((s) => s.key === activeStep);
-      const next = SETUP_STEPS.slice(currentIdx + 1).find((s) => !isStepDone(s.key, counts));
-      if (next) setActiveStep(next.key);
-    }
-  }, [counts, activeStep]);
-
   const progress = getSetupProgress(counts);
-
-  const handleLogout = () => { logout(); navigate("/login"); };
-
-  const renderStepPanel = () => {
-    const props = { api, showToast, onDataChange: refresh, embedded: true };
-    switch (activeStep) {
-      case "campuses": return <CampusesPanel {...props} />;
-      case "subjects": return <SubjectsPanel {...props} />;
-      case "sections": return <SectionsPanel {...props} />;
-      case "students": return <SetupStudentsStep {...props} />;
-      case "timetable": return <TimetablePanel {...props} />;
-      default: return null;
-    }
-  };
+  const currentStepKey = SETUP_STEPS.find((s) => !isStepDone(s.key, counts))?.key;
 
   if (loading) {
     return (
       <div className="setup-page-loading">
-        <Loader2 size={32} className="spin-icon" />
+        <Loader2 size={28} className="spin-icon" />
         <span>Loading setup…</span>
       </div>
     );
   }
 
   return (
-    <div className="setup-page">
-      <header className="setup-page-header">
-        <div className="setup-page-brand">
-          <div className="sidebar-logo"><School size={20} /></div>
-          <div>
-            <div className="sidebar-logo-text">School<span>MS</span></div>
-            <div className="setup-page-brand-sub">{BRAND.fullName} — Initial Setup</div>
-          </div>
-        </div>
-        <div className="header-actions">
-          <ThemeToggle />
-          <button className="btn btn-ghost btn-sm" onClick={handleLogout}>
-            <LogOut size={14} /> Logout
-          </button>
-        </div>
-      </header>
-
-      <div className="setup-page-body">
-        <aside className="setup-sidebar">
-          <div className="setup-welcome">
-            <h2>Welcome, {admin?.name?.split(" ")[0] || "Admin"}!</h2>
-            <p>Complete these steps to configure your school before accessing the dashboard.</p>
+    <SetupLayout>
+      <div className="setup-center">
+        <div className="setup-card">
+          <div className="setup-card-head">
+            <p className="setup-eyebrow">Initial configuration</p>
+            <h1 className="setup-title">Welcome, {admin?.name?.split(" ")[0] || "Admin"}</h1>
+            <p className="setup-subtitle">Complete each step in order to configure your school.</p>
           </div>
 
-          <div className="setup-progress-card">
-            <div className="setup-progress-header">
-              <span>Setup Progress</span>
+          <div className="setup-progress-wrap">
+            <div className="setup-progress-meta">
+              <span>Setup progress</span>
               <span className="setup-progress-pct">{progress.percent}%</span>
             </div>
             <div className="setup-progress-track">
               <div className="setup-progress-fill" style={{ width: `${progress.percent}%` }} />
             </div>
-            <span className="setup-progress-count">{progress.done} of {progress.total} steps complete</span>
+            <span className="setup-progress-count">{progress.done} of {progress.total} steps completed</span>
           </div>
 
-          <nav className="setup-steps-nav">
+          <ol className="setup-timeline">
             {SETUP_STEPS.map((step, i) => {
               const done = isStepDone(step.key, counts);
-              const active = activeStep === step.key;
+              const unlocked = isStepUnlocked(step.key, counts);
+              const locked = !unlocked;
+              const isCurrent = step.key === currentStepKey;
+              const isLast = i === SETUP_STEPS.length - 1;
+
               return (
-                <button
+                <li
                   key={step.key}
-                  className={`setup-nav-step ${done ? "done" : ""} ${active ? "active" : ""}`}
-                  onClick={() => setActiveStep(step.key)}
+                  className={`setup-timeline-item ${done ? "complete" : ""} ${isCurrent ? "current" : ""} ${locked ? "locked" : ""}`}
                 >
-                  <span className="setup-nav-num">
-                    {done ? <CheckCircle2 size={14} /> : i + 1}
-                  </span>
-                  <step.icon size={16} />
-                  <div className="setup-nav-text">
-                    <span className="setup-nav-label">{step.label}</span>
-                    <span className="setup-nav-desc">{step.desc}</span>
-                  </div>
-                </button>
+                  {!isLast && <span className="setup-timeline-line" aria-hidden />}
+                  <button
+                    type="button"
+                    className="setup-timeline-row"
+                    disabled={locked}
+                    onClick={() => !locked && navigate(getStepPath(step.key))}
+                  >
+                    <span className={`setup-timeline-marker ${done ? "done" : ""} ${isCurrent ? "active" : ""} ${locked ? "locked" : ""}`}>
+                      {done ? <Check size={14} strokeWidth={3} /> : locked ? <Lock size={12} /> : i + 1}
+                    </span>
+                    <span className="setup-timeline-body">
+                      <span className="setup-timeline-label">{step.label}</span>
+                      <span className="setup-timeline-desc">{step.desc}</span>
+                    </span>
+                    {done ? (
+                      <span className="setup-complete-badge"><Check size={12} /> Done</span>
+                    ) : locked ? (
+                      <span className="setup-locked-badge"><Lock size={12} /> Locked</span>
+                    ) : (
+                      <ChevronRight size={16} className="setup-timeline-chevron" />
+                    )}
+                  </button>
+                </li>
               );
             })}
-          </nav>
+          </ol>
 
           {isComplete && (
-            <button className="btn btn-primary setup-enter-btn" onClick={() => navigate("/")}>
+            <button type="button" className="btn btn-primary setup-finish-btn" onClick={() => navigate("/")}>
               Enter Dashboard <ArrowRight size={16} />
             </button>
           )}
-        </aside>
-
-        <main className="setup-main">
-          <div className="setup-main-header">
-            <h1>{SETUP_STEPS.find((s) => s.key === activeStep)?.label}</h1>
-            <p>{SETUP_STEPS.find((s) => s.key === activeStep)?.desc}</p>
-          </div>
-          {renderStepPanel()}
-        </main>
+        </div>
       </div>
-
-      <Toast toasts={toasts} />
-    </div>
+    </SetupLayout>
   );
 }

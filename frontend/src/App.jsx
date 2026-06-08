@@ -8,7 +8,7 @@ import {
   Award, UserX, UserCheck, Filter, LayoutDashboard,
   Settings, School, Shield, ClipboardList, BarChart2, TrendingUp,
   ChevronDown, CheckSquare, XSquare, Clock, Building2, Layers,
-  CalendarDays
+  CalendarDays, GraduationCap
 } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -20,10 +20,13 @@ import useApi from "./hooks/useApi";
 import CampusesPanel from "./components/CampusesPanel";
 import SubjectsPanel from "./components/SubjectsPanel";
 import SectionsPanel from "./components/SectionsPanel";
+import SetupClassStep from "./components/SetupClassStep";
 import TimetablePanel from "./components/TimetablePanel";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import SetupPage from "./pages/SetupPage";
+import SetupStepPage from "./pages/SetupStepPage";
+import SetupStepGuard from "./components/SetupStepGuard";
 import { ENDPOINTS } from "./api/config";
 import { BRAND } from "./config/brand";
 import "./App.css";
@@ -252,7 +255,7 @@ function Dashboard() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [activeDrawerStudent, setActiveDrawerStudent] = useState(null);
-  const [setupCounts, setSetupCounts] = useState({ campuses: 0, subjects: 0, sections: 0, timetable: 0 });
+  const [setupCounts, setSetupCounts] = useState({ campuses: 0, subjects: 0, classes: 0, sections: 0, timetable: 0 });
 
   // Layout settings
   const [tab, setTab] = useState("dashboard");
@@ -288,10 +291,12 @@ function Dashboard() {
         api.get(ENDPOINTS.sections),
         api.get(ENDPOINTS.timetable),
       ]);
+      const allSections = sec.data;
       setSetupCounts({
         campuses: camp.data.length,
         subjects: sub.data.length,
-        sections: sec.data.length,
+        classes: allSections.filter((s) => s.kind === "class").length,
+        sections: allSections.filter((s) => s.kind !== "class").length,
         timetable: tt.data.length,
       });
     } catch { /* silent */ }
@@ -412,7 +417,7 @@ function Dashboard() {
       { label: "Suspended", count: suspendedStudents, color: "var(--danger)" },
     ];
 
-    const infraTotal = setupCounts.campuses + setupCounts.subjects + setupCounts.sections + setupCounts.timetable;
+    const infraTotal = setupCounts.campuses + setupCounts.subjects + setupCounts.classes + setupCounts.sections + setupCounts.timetable;
 
     return (
       <div className="tab-view-content">
@@ -450,7 +455,7 @@ function Dashboard() {
         </div>
 
         {/* Infrastructure Stats */}
-        <div className="stats-row" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "14px" }}>
+        <div className="stats-row stats-row-infra" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "14px", marginBottom: "14px" }}>
           <div className="stat-card stat-card-clickable" onClick={() => setTab("campuses")}>
             <div className="stat-icon purple"><Building2 size={20} /></div>
             <div><div className="stat-value">{setupCounts.campuses}</div><div className="stat-label">Campuses</div></div>
@@ -459,13 +464,17 @@ function Dashboard() {
             <div className="stat-icon indigo"><BookOpen size={20} /></div>
             <div><div className="stat-value">{setupCounts.subjects}</div><div className="stat-label">Subjects</div></div>
           </div>
+          <div className="stat-card stat-card-clickable" onClick={() => setTab("classes")}>
+            <div className="stat-icon green"><GraduationCap size={20} /></div>
+            <div><div className="stat-value">{setupCounts.classes}</div><div className="stat-label">Classes</div></div>
+          </div>
           <div className="stat-card stat-card-clickable" onClick={() => setTab("sections")}>
             <div className="stat-icon blue"><Layers size={20} /></div>
-            <div><div className="stat-value">{setupCounts.sections}</div><div className="stat-label">Sections</div></div>
+            <div><div className="stat-value">{setupCounts.sections}</div><div className="stat-label">Class Sections</div></div>
           </div>
           <div className="stat-card stat-card-clickable" onClick={() => setTab("timetable")}>
             <div className="stat-icon amber"><CalendarDays size={20} /></div>
-            <div><div className="stat-value">{setupCounts.timetable}</div><div className="stat-label">Timetable Slots</div></div>
+            <div><div className="stat-value">{setupCounts.timetable}</div><div className="stat-label">Timetable</div></div>
           </div>
         </div>
 
@@ -1223,8 +1232,7 @@ function Dashboard() {
         <div className="sidebar-brand">
           <div className="sidebar-logo"><School size={22} /></div>
           <div className="sidebar-brand-text">
-            <div className="sidebar-logo-text">School<span>MS</span></div>
-            <div className="sidebar-brand-subtitle">{BRAND.fullName}</div>
+            <div className="sidebar-logo-text sidebar-logo-full">{BRAND.fullName}</div>
           </div>
         </div>
 
@@ -1244,9 +1252,13 @@ function Dashboard() {
             <BookOpen size={18} />
             <span>Subjects</span>
           </button>
+          <button className={`nav-item ${tab === "classes" ? "active" : ""}`} onClick={() => setTab("classes")}>
+            <GraduationCap size={18} />
+            <span>Classes</span>
+          </button>
           <button className={`nav-item ${tab === "sections" ? "active" : ""}`} onClick={() => setTab("sections")}>
             <Layers size={18} />
-            <span>Sections</span>
+            <span>Class Sections</span>
           </button>
           <button className={`nav-item ${tab === "timetable" ? "active" : ""}`} onClick={() => setTab("timetable")}>
             <CalendarDays size={18} />
@@ -1306,6 +1318,7 @@ function Dashboard() {
           {tab === "dashboard" && renderDashboardView()}
           {tab === "campuses" && <CampusesPanel api={api} showToast={showToast} />}
           {tab === "subjects" && <SubjectsPanel api={api} showToast={showToast} />}
+          {tab === "classes" && <SetupClassStep api={api} showToast={showToast} />}
           {tab === "sections" && <SectionsPanel api={api} showToast={showToast} />}
           {tab === "timetable" && <TimetablePanel api={api} showToast={showToast} />}
           {tab === "students" && renderStudentsView()}
@@ -1409,6 +1422,11 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/setup/:stepKey" element={
+        <ProtectedRoute>
+          <SetupStepGuard><SetupStepPage /></SetupStepGuard>
+        </ProtectedRoute>
+      } />
       <Route path="/setup" element={
         <ProtectedRoute><SetupPage /></ProtectedRoute>
       } />

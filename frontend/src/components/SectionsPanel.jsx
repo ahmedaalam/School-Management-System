@@ -15,22 +15,21 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
+  const fetchItems = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [secRes, campRes] = await Promise.all([
         api.get(ENDPOINTS.sections),
         api.get(ENDPOINTS.campuses),
       ]);
-      setItems(secRes.data);
+      setItems(secRes.data.filter((s) => s.kind !== "class"));
       setCampuses(campRes.data);
-      onDataChange?.();
     } catch {
       showToast("Failed to load sections", "error");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [api, showToast, onDataChange]);
+  }, [api, showToast]);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
@@ -65,11 +64,12 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
         await api.put(`${ENDPOINTS.sections}/${editId}`, form);
         showToast("Section updated", "success");
       } else {
-        await api.post(ENDPOINTS.sections, form);
+        await api.post(ENDPOINTS.sections, { ...form, kind: "section" });
         showToast("Section added", "success");
       }
       setModal(null);
-      fetchItems();
+      await fetchItems(true);
+      onDataChange?.();
     } catch (err) {
       showToast(err.response?.data?.message || "Save failed", "error");
     } finally {
@@ -83,7 +83,8 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
       await api.delete(`${ENDPOINTS.sections}/${deleteId}`);
       showToast("Section deleted", "success");
       setDeleteId(null);
-      fetchItems();
+      await fetchItems(true);
+      onDataChange?.();
     } catch {
       showToast("Delete failed", "error");
     } finally {
@@ -96,18 +97,18 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
       {!embedded && (
         <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <h1 className="page-title">Sections <span>Classes</span></h1>
-            <p className="page-subtitle">Organize students into class sections per grade and campus.</p>
+            <h1 className="page-title">Class <span>Sections</span></h1>
+            <p className="page-subtitle">Add class sections per grade and campus (e.g. 9-A, 10-B).</p>
           </div>
           <button className="btn btn-primary" onClick={openAdd} disabled={campuses.length === 0}>
-            <Plus size={15} /> Add Section
+            <Plus size={15} /> Add Class Section
           </button>
         </div>
       )}
       {embedded && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
           <button className="btn btn-primary" onClick={openAdd} disabled={campuses.length === 0}>
-            <Plus size={15} /> Add Section
+            <Plus size={15} /> Add Class Section
           </button>
         </div>
       )}
@@ -115,13 +116,13 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
       {campuses.length === 0 && !loading && (
         <div className="setup-alert">
           <AlertCircle size={16} />
-          Add at least one campus before creating sections.
+          Add at least one campus before creating class sections.
         </div>
       )}
 
       <div className="card">
         <div className="card-header">
-          <span className="card-title"><span className="card-title-icon"><Layers size={15} /></span>All Sections ({items.length})</span>
+          <span className="card-title"><span className="card-title-icon"><Layers size={15} /></span>All Class Sections ({items.length})</span>
         </div>
         <div className="card-body" style={{ padding: 0 }}>
           {loading ? (
@@ -129,9 +130,9 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
           ) : items.length === 0 ? (
             <div className="empty-state">
               <Layers size={32} style={{ opacity: 0.4, marginBottom: 12 }} />
-              <p>No sections yet. Create class sections like 9-A, 10-B.</p>
+              <p>No class sections yet. Create sections like 9-A, 10-B.</p>
               {campuses.length > 0 && (
-                <button className="btn btn-primary btn-sm" onClick={openAdd} style={{ marginTop: 12 }}><Plus size={14} /> Add First Section</button>
+                <button className="btn btn-primary btn-sm" onClick={openAdd} style={{ marginTop: 12 }}><Plus size={14} /> Add Class Section</button>
               )}
             </div>
           ) : (
@@ -166,13 +167,13 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
         <div className="modal-overlay" onClick={() => setModal(null)}>
           <div className="modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title"><span className="modal-title-icon"><Layers size={15} /></span>{editId ? "Edit Section" : "Add Section"}</span>
+              <span className="modal-title"><span className="modal-title-icon"><Layers size={15} /></span>{editId ? "Edit Class Section" : "Add Class Section"}</span>
               <button className="modal-close" onClick={() => setModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleSave}>
               <div className="modal-body" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div className="form-group">
-                  <label className="form-label">Section Name</label>
+                  <label className="form-label">Class Section Name</label>
                   <input className="form-input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. 9-A" />
                 </div>
                 <div className="form-group">
@@ -200,7 +201,7 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
               <div className="modal-footer">
                 <button type="button" className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? <><Loader2 size={14} className="spin-icon" /> Saving…</> : <><CheckCircle2 size={14} /> Save Section</>}
+                  {saving ? <><Loader2 size={14} className="spin-icon" /> Saving…</> : <><CheckCircle2 size={14} /> Save Class Section</>}
                 </button>
               </div>
             </form>

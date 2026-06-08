@@ -11,18 +11,17 @@ export default function SetupStudentsStep({ api, showToast, onDataChange, embedd
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
 
-  const fetchStudents = useCallback(async () => {
-    setLoading(true);
+  const fetchStudents = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await api.get(ENDPOINTS.users);
       setStudents(res.data);
-      onDataChange?.();
     } catch {
       showToast("Failed to load students", "error");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [api, showToast, onDataChange]);
+  }, [api, showToast]);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
@@ -46,7 +45,8 @@ export default function SetupStudentsStep({ api, showToast, onDataChange, embedd
       showToast("Student enrolled successfully", "success");
       setForm(EMPTY);
       setErrors({});
-      fetchStudents();
+      await fetchStudents(true);
+      onDataChange?.();
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to add student", "error");
     } finally {

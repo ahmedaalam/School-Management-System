@@ -14,18 +14,17 @@ export default function SubjectsPanel({ api, showToast, onDataChange, embedded }
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
+  const fetchItems = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await api.get(ENDPOINTS.subjects);
       setItems(res.data);
-      onDataChange?.();
     } catch {
       showToast("Failed to load subjects", "error");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [api, showToast, onDataChange]);
+  }, [api, showToast]);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
@@ -52,7 +51,8 @@ export default function SubjectsPanel({ api, showToast, onDataChange, embedded }
         showToast("Subject added", "success");
       }
       setModal(null);
-      fetchItems();
+      await fetchItems(true);
+      onDataChange?.();
     } catch (err) {
       showToast(err.response?.data?.message || "Save failed", "error");
     } finally {
@@ -66,7 +66,8 @@ export default function SubjectsPanel({ api, showToast, onDataChange, embedded }
       await api.delete(`${ENDPOINTS.subjects}/${deleteId}`);
       showToast("Subject deleted", "success");
       setDeleteId(null);
-      fetchItems();
+      await fetchItems(true);
+      onDataChange?.();
     } catch {
       showToast("Delete failed", "error");
     } finally {

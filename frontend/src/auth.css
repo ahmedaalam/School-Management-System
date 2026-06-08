@@ -82,6 +82,12 @@
   letter-spacing: 0.2px;
 }
 
+.auth-logo-full {
+  font-size: 15px;
+  line-height: 1.35;
+  max-width: 200px;
+}
+
 .auth-left-content {
   flex: 1;
   display: flex;

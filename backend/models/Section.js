@@ -4,6 +4,7 @@ const sectionSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     grade: { type: String, required: true, trim: true },
+    kind: { type: String, enum: ["class", "section"], default: "section" },
     campus: { type: mongoose.Schema.Types.ObjectId, ref: "Campus", required: true },
     capacity: { type: Number, default: 30, min: 1 },
     room: { type: String, trim: true },

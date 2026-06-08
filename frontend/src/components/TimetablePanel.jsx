@@ -18,8 +18,8 @@ export default function TimetablePanel({ api, showToast, onDataChange, embedded 
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [slotRes, secRes, subRes, campRes] = await Promise.all([
         api.get(ENDPOINTS.timetable),
@@ -28,19 +28,16 @@ export default function TimetablePanel({ api, showToast, onDataChange, embedded 
         api.get(ENDPOINTS.campuses),
       ]);
       setSlots(slotRes.data);
-      setSections(secRes.data);
+      setSections(secRes.data.filter((s) => s.kind !== "class"));
       setSubjects(subRes.data);
       setCampuses(campRes.data);
-      if (!filterSection && secRes.data.length > 0) {
-        setFilterSection(secRes.data[0]._id);
-      }
-      onDataChange?.();
+      setFilterSection((prev) => prev || secRes.data[0]?._id || "");
     } catch {
       showToast("Failed to load timetable", "error");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [api, showToast, onDataChange]); // eslint-disable-line
+  }, [api, showToast]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -92,7 +89,8 @@ export default function TimetablePanel({ api, showToast, onDataChange, embedded 
         showToast("Timetable slot added", "success");
       }
       setModal(null);
-      fetchData();
+      await fetchData(true);
+      onDataChange?.();
     } catch (err) {
       showToast(err.response?.data?.message || "Save failed", "error");
     } finally {
@@ -106,7 +104,8 @@ export default function TimetablePanel({ api, showToast, onDataChange, embedded 
       await api.delete(`${ENDPOINTS.timetable}/${deleteId}`);
       showToast("Slot deleted", "success");
       setDeleteId(null);
-      fetchData();
+      await fetchData(true);
+      onDataChange?.();
     } catch {
       showToast("Delete failed", "error");
     } finally {
