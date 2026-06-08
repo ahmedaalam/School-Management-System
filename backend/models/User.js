@@ -6,6 +6,8 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     grade: { type: String, required: true },
+    section: { type: mongoose.Schema.Types.ObjectId, ref: "Section" },
+    campus: { type: mongoose.Schema.Types.ObjectId, ref: "Campus" },
     status: { type: String, enum: ["Active", "Suspended", "Graduated"], default: "Active" },
     gender: { type: String, enum: ["Male", "Female", "Other"], required: true },
     phone: { type: String, required: true, trim: true },

@@ -18,7 +18,10 @@ router.post("/", verifyToken, async (req, res) => {
 // Read all
 router.get("/", verifyToken, async (req, res) => {
     try {
-        const users = await User.find().sort({ createdAt: -1 });
+        const users = await User.find()
+            .populate("section", "name grade")
+            .populate("campus", "name code")
+            .sort({ createdAt: -1 });
         res.json(users);
     } catch (err) {
         console.error("GET /users error:", err);

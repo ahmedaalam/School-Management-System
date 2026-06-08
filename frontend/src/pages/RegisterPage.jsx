@@ -3,9 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import {
-  GraduationCap, Mail, Lock, Eye, EyeOff,
+  School, Mail, Lock, Eye, EyeOff,
   User, UserPlus, AlertCircle, Loader2,
 } from "lucide-react";
+import ThemeToggle from "../components/ThemeToggle";
+import { BRAND } from "../config/brand";
 import "../auth.css";
 
 export default function RegisterPage() {
@@ -59,20 +61,23 @@ export default function RegisterPage() {
       <div className="auth-left">
         <div className="auth-brand">
           <div className="auth-logo">
-            <GraduationCap size={28} />
+            <School size={28} />
           </div>
-          <span className="auth-logo-text">StudentMS</span>
+          <div className="auth-brand-text">
+            <span className="auth-logo-text">School<span className="auth-logo-accent">MS</span></span>
+            <span className="auth-brand-full">{BRAND.fullName}</span>
+          </div>
         </div>
         <div className="auth-left-content">
-          <h2 className="auth-tagline">Get started in seconds.</h2>
+          <h2 className="auth-tagline">Set up your school in minutes.</h2>
           <p className="auth-desc">
-            Create your admin account to start managing student records right away.
+            Create your admin account and start configuring campuses, academics, and student records.
           </p>
           <div className="auth-features">
             {[
-              "Free to use — no credit card required",
-              "Secure password hashing with bcrypt",
-              "Token-based session management",
+              "Complete school administration suite",
+              "Secure admin authentication",
+              "Dark & light mode support",
             ].map((f) => (
               <div className="auth-feature-item" key={f}>
                 <div className="auth-feature-dot" />
@@ -82,12 +87,13 @@ export default function RegisterPage() {
           </div>
         </div>
         <div className="auth-left-footer">
-          © {new Date().getFullYear()} StudentMS. All rights reserved.
+          © {new Date().getFullYear()} {BRAND.fullName}. All rights reserved.
         </div>
       </div>
 
       {/* Right panel */}
       <div className="auth-right">
+        <div className="auth-theme-toggle"><ThemeToggle /></div>
         <div className="auth-card">
           <div className="auth-card-header">
             <h1 className="auth-title">Create account</h1>

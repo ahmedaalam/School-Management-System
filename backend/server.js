@@ -19,10 +19,18 @@ mongoose
 // Import Routes
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
+const campusRoutes = require("./routes/campusRoutes");
+const subjectRoutes = require("./routes/subjectRoutes");
+const sectionRoutes = require("./routes/sectionRoutes");
+const timetableRoutes = require("./routes/timetableRoutes");
 
 // Mount Routes
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
+app.use("/campuses", campusRoutes);
+app.use("/subjects", subjectRoutes);
+app.use("/sections", sectionRoutes);
+app.use("/timetable", timetableRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

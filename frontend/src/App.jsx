@@ -2,64 +2,33 @@ import { useEffect, useState, useCallback } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
-  GraduationCap, Users, Search, Plus, Pencil, Trash2,
+  Users, Search, Plus, Pencil, Trash2,
   X, CheckCircle2, AlertCircle, Mail, User, Loader2,
   BookOpen, Activity, ShieldCheck, LogOut, Phone, Calendar,
-  Award, UserX, UserCheck, Filter, RotateCcw, LayoutDashboard,
+  Award, UserX, UserCheck, Filter, LayoutDashboard,
   Settings, School, Shield, ClipboardList, BarChart2, TrendingUp,
-  ChevronDown, CheckSquare, XSquare, Clock
+  ChevronDown, CheckSquare, XSquare, Clock, Building2, Layers,
+  CalendarDays
 } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import SetupGuard from "./components/SetupGuard";
+import ThemeToggle from "./components/ThemeToggle";
+import AdminProfileMenu from "./components/AdminProfileMenu";
+import Toast from "./components/Toast";
+import useApi from "./hooks/useApi";
+import CampusesPanel from "./components/CampusesPanel";
+import SubjectsPanel from "./components/SubjectsPanel";
+import SectionsPanel from "./components/SectionsPanel";
+import TimetablePanel from "./components/TimetablePanel";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import SetupPage from "./pages/SetupPage";
+import { ENDPOINTS } from "./api/config";
+import { BRAND } from "./config/brand";
 import "./App.css";
 
-const API = "http://localhost:5000/users";
-
-// ─── Axios helper with auth token ─────────────────────────────────────────────
-function useApi() {
-  const { token, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const authAxios = {
-    get: (url) =>
-      axios.get(url, { headers: { Authorization: `Bearer ${token}` } }),
-    post: (url, data) =>
-      axios.post(url, data, { headers: { Authorization: `Bearer ${token}` } }),
-    put: (url, data) =>
-      axios.put(url, data, { headers: { Authorization: `Bearer ${token}` } }),
-    delete: (url) =>
-      axios.delete(url, { headers: { Authorization: `Bearer ${token}` } }),
-  };
-
-  // Intercept 401 and auto-logout
-  axios.interceptors.response.use(
-    (r) => r,
-    (err) => {
-      if (err.response?.status === 401) { logout(); navigate("/login"); }
-      return Promise.reject(err);
-    }
-  );
-
-  return authAxios;
-}
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-function Toast({ toasts }) {
-  return (
-    <div className="toast-container">
-      {toasts.map((t) => (
-        <div key={t.id} className={`toast ${t.type}`}>
-          <span className="toast-icon">
-            {t.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-          </span>
-          <span>{t.message}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+const API = ENDPOINTS.users;
 
 // ─── Confirm Delete Modal ─────────────────────────────────────────────────────
 function ConfirmModal({ user, onConfirm, onCancel, loading }) {
@@ -268,7 +237,7 @@ function getInitials(name = "") {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function Dashboard() {
-  const { admin, logout } = useAuth();
+  const { admin, token, logout } = useAuth();
   const navigate = useNavigate();
   const api = useApi();
   const [users, setUsers] = useState([]);
@@ -283,7 +252,7 @@ function Dashboard() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [activeDrawerStudent, setActiveDrawerStudent] = useState(null);
-  const [seeding, setSeeding] = useState(false);
+  const [setupCounts, setSetupCounts] = useState({ campuses: 0, subjects: 0, sections: 0, timetable: 0 });
 
   // Layout settings
   const [tab, setTab] = useState("dashboard");
@@ -311,7 +280,24 @@ function Dashboard() {
     }
   }, []); // eslint-disable-line
 
-  useEffect(() => { fetchUsers(); }, []); // eslint-disable-line
+  const fetchSetupCounts = useCallback(async () => {
+    try {
+      const [camp, sub, sec, tt] = await Promise.all([
+        api.get(ENDPOINTS.campuses),
+        api.get(ENDPOINTS.subjects),
+        api.get(ENDPOINTS.sections),
+        api.get(ENDPOINTS.timetable),
+      ]);
+      setSetupCounts({
+        campuses: camp.data.length,
+        subjects: sub.data.length,
+        sections: sec.data.length,
+        timetable: tt.data.length,
+      });
+    } catch { /* silent */ }
+  }, []); // eslint-disable-line
+
+  useEffect(() => { fetchUsers(); fetchSetupCounts(); }, []); // eslint-disable-line
 
   const handleDelete = async () => {
     setDeleteLoading(true);
@@ -327,73 +313,6 @@ function Dashboard() {
       showToast("Failed to delete student", "error");
     } finally {
       setDeleteLoading(false);
-    }
-  };
-
-  const handleSeed = async () => {
-    setSeeding(true);
-    const mockStudents = [
-      {
-        name: "Sarah Connor", email: "sarah.connor@school.com", grade: "Grade 12",
-        gender: "Female", phone: "+1 555-0199", dob: "2008-04-12", status: "Active",
-        grades: { math: "A", science: "B+", english: "A", history: "A-" },
-        attendance: [
-          { date: "2026-06-01", status: "Present" }, { date: "2026-06-02", status: "Present" },
-          { date: "2026-06-03", status: "Absent" }, { date: "2026-06-04", status: "Present" },
-          { date: "2026-06-05", status: "Present" },
-        ]
-      },
-      {
-        name: "John Connor", email: "john.connor@school.com", grade: "Grade 10",
-        gender: "Male", phone: "+1 555-0144", dob: "2010-09-24", status: "Active",
-        grades: { math: "B", science: "A-", english: "B+", history: "C+" },
-        attendance: [
-          { date: "2026-06-01", status: "Present" }, { date: "2026-06-02", status: "Late" },
-          { date: "2026-06-03", status: "Present" }, { date: "2026-06-04", status: "Present" },
-          { date: "2026-06-05", status: "Absent" },
-        ]
-      },
-      {
-        name: "James Smith", email: "james.smith@school.com", grade: "Grade 11",
-        gender: "Male", phone: "+1 555-0177", dob: "2009-11-05", status: "Suspended",
-        grades: { math: "C", science: "C+", english: "B-", history: "D" },
-        attendance: [
-          { date: "2026-06-01", status: "Absent" }, { date: "2026-06-02", status: "Absent" },
-          { date: "2026-06-03", status: "Present" }, { date: "2026-06-04", status: "Absent" },
-          { date: "2026-06-05", status: "Absent" },
-        ]
-      },
-      {
-        name: "Emily Watson", email: "emily.watson@school.com", grade: "Grade 12",
-        gender: "Female", phone: "+1 555-0155", dob: "2008-07-19", status: "Graduated",
-        grades: { math: "A+", science: "A", english: "A+", history: "A" },
-        attendance: [
-          { date: "2026-06-01", status: "Present" }, { date: "2026-06-02", status: "Present" },
-          { date: "2026-06-03", status: "Present" }, { date: "2026-06-04", status: "Present" },
-          { date: "2026-06-05", status: "Present" },
-        ]
-      },
-      {
-        name: "Alex Mercer", email: "alex.mercer@school.com", grade: "Grade 9",
-        gender: "Other", phone: "+1 555-0122", dob: "2011-01-30", status: "Active",
-        grades: { math: "B+", science: "B", english: "A-", history: "B" },
-        attendance: [
-          { date: "2026-06-01", status: "Present" }, { date: "2026-06-02", status: "Present" },
-          { date: "2026-06-03", status: "Late" }, { date: "2026-06-04", status: "Present" },
-          { date: "2026-06-05", status: "Present" },
-        ]
-      }
-    ];
-    try {
-      for (const student of mockStudents) {
-        await api.post(API, student);
-      }
-      showToast("Sample student records seeded!", "success");
-      fetchUsers();
-    } catch {
-      showToast("Failed to seed sample data", "error");
-    } finally {
-      setSeeding(false);
     }
   };
 
@@ -436,12 +355,28 @@ function Dashboard() {
     setSortBy("date-desc");
   };
 
+  // ─── Shared analytics helpers ───────────────────────────────────────────────
+  const GRADE_POINTS = { "A+": 4.0, "A": 4.0, "A-": 3.7, "B+": 3.3, "B": 3.0, "B-": 2.7, "C+": 2.3, "C": 2.0, "C-": 1.7, "D": 1.0, "F": 0.0 };
+  const SUBJECTS = ["math", "science", "english", "history"];
+
+  const calcGPA = (grades = {}) => {
+    const vals = SUBJECTS.map((s) => GRADE_POINTS[grades[s]] ?? 0);
+    return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2);
+  };
+
+  const getGPAColor = (gpa) => {
+    if (gpa >= 3.7) return "var(--success)";
+    if (gpa >= 3.0) return "var(--accent)";
+    if (gpa >= 2.0) return "var(--warning)";
+    return "var(--danger)";
+  };
+
   // ─── Sub-views Rendering ────────────────────────────────────────────────────
 
   const renderDashboardView = () => {
     const recentStudents = [...users]
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 3);
+      .slice(0, 5);
 
     const grades = ["Grade 9", "Grade 10", "Grade 11", "Grade 12"];
     const gradeDistribution = grades.reduce((acc, g) => {
@@ -449,30 +384,100 @@ function Dashboard() {
       return acc;
     }, {});
 
+    // Attendance analytics
+    let attPresent = 0, attAbsent = 0, attLate = 0, attTotal = 0;
+    users.forEach((u) => {
+      (u.attendance || []).forEach((a) => {
+        attTotal++;
+        if (a.status === "Present") attPresent++;
+        else if (a.status === "Absent") attAbsent++;
+        else if (a.status === "Late") attLate++;
+      });
+    });
+    const attendanceRate = attTotal > 0 ? Math.round((attPresent / attTotal) * 100) : 0;
+
+    // Academic analytics
+    const gpas = users.map((u) => parseFloat(calcGPA(u.grades || {})));
+    const avgGPA = users.length > 0 ? (gpas.reduce((a, b) => a + b, 0) / users.length).toFixed(2) : "0.00";
+    const honorRoll = users.filter((u) => parseFloat(calcGPA(u.grades || {})) >= 3.5).length;
+    const atRisk = users.filter((u) => parseFloat(calcGPA(u.grades || {})) < 2.0).length;
+
+    // Demographics
+    const genderDist = { Male: 0, Female: 0, Other: 0 };
+    users.forEach((u) => { if (u.gender in genderDist) genderDist[u.gender]++; });
+
+    const statusDist = [
+      { label: "Active", count: activeStudents, color: "var(--success)" },
+      { label: "Graduated", count: graduatedStudents, color: "var(--accent)" },
+      { label: "Suspended", count: suspendedStudents, color: "var(--danger)" },
+    ];
+
+    const infraTotal = setupCounts.campuses + setupCounts.subjects + setupCounts.sections + setupCounts.timetable;
+
     return (
       <div className="tab-view-content">
-        <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-          <div>
-            <h1 className="page-title">Dashboard <span>Overview</span></h1>
-            <p className="page-subtitle">Welcome back, {admin?.name || "Admin"}. Summary dashboard for {settings.schoolName}.</p>
-          </div>
-          {totalStudents === 0 && !loading && (
-            <button className="btn btn-ghost btn-sm" onClick={handleSeed} disabled={seeding} style={{ display: "flex", gap: "6px" }}>
-              {seeding ? <Loader2 size={13} className="spin-icon" /> : <RotateCcw size={13} />}
-              Seed Sample Data
-            </button>
-          )}
+        <div className="page-header">
+          <h1 className="page-title">School <span>Analytics</span></h1>
+          <p className="page-subtitle">Welcome back, {admin?.name || "Admin"}. Overall performance and insights across your school.</p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="stats-row" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "28px" }}>
-          <div className="stat-card">
+        {/* Key Metrics */}
+        <div className="analytics-summary-banner">
+          <div className="analytics-summary-item">
+            <span className="analytics-summary-value">{totalStudents}</span>
+            <span className="analytics-summary-label">Total Students</span>
+          </div>
+          <div className="analytics-summary-divider" />
+          <div className="analytics-summary-item">
+            <span className="analytics-summary-value">{infraTotal}</span>
+            <span className="analytics-summary-label">Academic Resources</span>
+          </div>
+          <div className="analytics-summary-divider" />
+          <div className="analytics-summary-item">
+            <span className="analytics-summary-value" style={{ color: getGPAColor(parseFloat(avgGPA)) }}>{avgGPA}</span>
+            <span className="analytics-summary-label">School Avg GPA</span>
+          </div>
+          <div className="analytics-summary-divider" />
+          <div className="analytics-summary-item">
+            <span className="analytics-summary-value" style={{ color: "var(--success)" }}>{attendanceRate}%</span>
+            <span className="analytics-summary-label">Attendance Rate</span>
+          </div>
+          <div className="analytics-summary-divider" />
+          <div className="analytics-summary-item">
+            <span className="analytics-summary-value" style={{ color: "var(--success)" }}>{honorRoll}</span>
+            <span className="analytics-summary-label">Honor Roll</span>
+          </div>
+        </div>
+
+        {/* Infrastructure Stats */}
+        <div className="stats-row" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "14px" }}>
+          <div className="stat-card stat-card-clickable" onClick={() => setTab("campuses")}>
+            <div className="stat-icon purple"><Building2 size={20} /></div>
+            <div><div className="stat-value">{setupCounts.campuses}</div><div className="stat-label">Campuses</div></div>
+          </div>
+          <div className="stat-card stat-card-clickable" onClick={() => setTab("subjects")}>
+            <div className="stat-icon indigo"><BookOpen size={20} /></div>
+            <div><div className="stat-value">{setupCounts.subjects}</div><div className="stat-label">Subjects</div></div>
+          </div>
+          <div className="stat-card stat-card-clickable" onClick={() => setTab("sections")}>
+            <div className="stat-icon blue"><Layers size={20} /></div>
+            <div><div className="stat-value">{setupCounts.sections}</div><div className="stat-label">Sections</div></div>
+          </div>
+          <div className="stat-card stat-card-clickable" onClick={() => setTab("timetable")}>
+            <div className="stat-icon amber"><CalendarDays size={20} /></div>
+            <div><div className="stat-value">{setupCounts.timetable}</div><div className="stat-label">Timetable Slots</div></div>
+          </div>
+        </div>
+
+        {/* Student Stats */}
+        <div className="stats-row" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "24px" }}>
+          <div className="stat-card stat-card-clickable" onClick={() => setTab("students")}>
             <div className="stat-icon indigo"><Users size={20} /></div>
-            <div><div className="stat-value">{totalStudents}</div><div className="stat-label">Total Registered</div></div>
+            <div><div className="stat-value">{totalStudents}</div><div className="stat-label">Enrolled</div></div>
           </div>
           <div className="stat-card">
             <div className="stat-icon green"><Activity size={20} /></div>
-            <div><div className="stat-value">{activeStudents}</div><div className="stat-label">Active Enrolled</div></div>
+            <div><div className="stat-value">{activeStudents}</div><div className="stat-label">Active</div></div>
           </div>
           <div className="stat-card">
             <div className="stat-icon blue"><UserCheck size={20} /></div>
@@ -484,7 +489,116 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="content-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+        {/* Analytics Grid */}
+        <div className="analytics-grid">
+          {/* Academic Performance */}
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title"><span className="card-title-icon"><TrendingUp size={15} /></span>Academic Performance</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => setTab("academics")}>View</button>
+            </div>
+            <div className="card-body">
+              <div className="analytics-big-metric">
+                <span className="analytics-big-value" style={{ color: getGPAColor(parseFloat(avgGPA)) }}>{avgGPA}</span>
+                <span className="analytics-big-label">School Average GPA</span>
+              </div>
+              <div className="analytics-mini-stats">
+                <div className="analytics-mini-stat">
+                  <span className="analytics-mini-value" style={{ color: "var(--success)" }}>{honorRoll}</span>
+                  <span className="analytics-mini-label">Honor Roll (≥3.5)</span>
+                </div>
+                <div className="analytics-mini-stat">
+                  <span className="analytics-mini-value" style={{ color: "var(--danger)" }}>{atRisk}</span>
+                  <span className="analytics-mini-label">At Risk (&lt;2.0)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Attendance Overview */}
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title"><span className="card-title-icon"><ClipboardList size={15} /></span>Attendance Overview</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => setTab("attendance")}>View</button>
+            </div>
+            <div className="card-body">
+              <div className="analytics-big-metric">
+                <span className="analytics-big-value" style={{ color: "var(--success)" }}>{attendanceRate}%</span>
+                <span className="analytics-big-label">Overall Attendance Rate</span>
+              </div>
+              <div className="analytics-bar-list">
+                {[
+                  { label: "Present", count: attPresent, color: "var(--success)" },
+                  { label: "Absent", count: attAbsent, color: "var(--danger)" },
+                  { label: "Late", count: attLate, color: "var(--warning)" },
+                ].map((item) => (
+                  <div key={item.label} className="analytics-bar-row">
+                    <span className="analytics-bar-label">{item.label}</span>
+                    <div className="analytics-bar-track">
+                      <div className="analytics-bar-fill" style={{ width: `${attTotal > 0 ? (item.count / attTotal) * 100 : 0}%`, background: item.color }} />
+                    </div>
+                    <span className="analytics-bar-count">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Student Status */}
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title"><span className="card-title-icon"><Users size={15} /></span>Student Status</span>
+            </div>
+            <div className="card-body">
+              {statusDist.map((s) => {
+                const pct = totalStudents > 0 ? (s.count / totalStudents) * 100 : 0;
+                return (
+                  <div key={s.label} className="analytics-bar-row" style={{ marginBottom: 14 }}>
+                    <span className="analytics-bar-label">{s.label}</span>
+                    <div className="analytics-bar-track">
+                      <div className="analytics-bar-fill" style={{ width: `${pct}%`, background: s.color }} />
+                    </div>
+                    <span className="analytics-bar-count">{s.count}</span>
+                  </div>
+                );
+              })}
+              <div className="analytics-mini-stats" style={{ marginTop: 8 }}>
+                {Object.entries(genderDist).map(([g, count]) => (
+                  <div key={g} className="analytics-mini-stat">
+                    <span className="analytics-mini-value">{count}</span>
+                    <span className="analytics-mini-label">{g}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Enrollment by Grade */}
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title"><span className="card-title-icon"><Award size={15} /></span>Enrollment by Grade</span>
+            </div>
+            <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              {grades.map((grade) => {
+                const count = gradeDistribution[grade] || 0;
+                const percent = totalStudents > 0 ? (count / totalStudents) * 100 : 0;
+                return (
+                  <div key={grade}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: 500, marginBottom: 6 }}>
+                      <span>{grade}</span>
+                      <span style={{ color: "var(--text-muted)" }}>{count} ({Math.round(percent)}%)</span>
+                    </div>
+                    <div className="analytics-bar-track" style={{ height: 8 }}>
+                      <div className="analytics-bar-fill" style={{ width: `${percent}%`, background: "var(--accent)", height: "100%", borderRadius: 99 }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="content-grid" style={{ gridTemplateColumns: "1fr", gap: "20px", marginTop: 20 }}>
           {/* Recent Registrations */}
           <div className="card">
             <div className="card-header">
@@ -522,32 +636,6 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Grade Distribution */}
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">
-                <span className="card-title-icon"><Award size={15} /></span>
-                Enrollment Breakdown
-              </span>
-            </div>
-            <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {grades.map((grade) => {
-                const count = gradeDistribution[grade] || 0;
-                const percent = totalStudents > 0 ? (count / totalStudents) * 100 : 0;
-                return (
-                  <div key={grade} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: 500 }}>
-                      <span>{grade}</span>
-                      <span style={{ color: "var(--text-muted)" }}>{count} students ({Math.round(percent)}%)</span>
-                    </div>
-                    <div style={{ height: "6px", background: "var(--border)", borderRadius: "99px", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${percent}%`, background: "var(--accent)", borderRadius: "99px" }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -687,24 +775,9 @@ function Dashboard() {
   };
 
   // ─── Academics View ─────────────────────────────────────────────────────────
-  const GRADE_POINTS = { "A+": 4.0, "A": 4.0, "A-": 3.7, "B+": 3.3, "B": 3.0, "B-": 2.7, "C+": 2.3, "C": 2.0, "C-": 1.7, "D": 1.0, "F": 0.0 };
   const GRADE_OPTS = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"];
-  const SUBJECTS = ["math", "science", "english", "history"];
   const SUBJECT_LABELS = { math: "Mathematics", science: "Science", english: "English", history: "History" };
   const SUBJECT_COLORS = { math: "#6366f1", science: "#10b981", english: "#f59e0b", history: "#8b5cf6" };
-
-  const calcGPA = (grades = {}) => {
-    const vals = SUBJECTS.map(s => GRADE_POINTS[grades[s]] ?? 0);
-    const sum = vals.reduce((a, b) => a + b, 0);
-    return (sum / vals.length).toFixed(2);
-  };
-
-  const getGPAColor = (gpa) => {
-    if (gpa >= 3.7) return "var(--success)";
-    if (gpa >= 3.0) return "var(--accent)";
-    if (gpa >= 2.0) return "#f59e0b";
-    return "var(--danger)";
-  };
 
   const [academicsSelected, setAcademicsSelected] = useState(null);
   const [academicsEditing, setAcademicsEditing] = useState(false);
@@ -1148,8 +1221,11 @@ function Dashboard() {
       {/* Sidebar Panel */}
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="sidebar-logo"><GraduationCap size={22} /></div>
-          <div className="sidebar-logo-text">Student<span>MS</span></div>
+          <div className="sidebar-logo"><School size={22} /></div>
+          <div className="sidebar-brand-text">
+            <div className="sidebar-logo-text">School<span>MS</span></div>
+            <div className="sidebar-brand-subtitle">{BRAND.fullName}</div>
+          </div>
         </div>
 
         <nav className="sidebar-nav">
@@ -1159,13 +1235,31 @@ function Dashboard() {
             <span>Dashboard</span>
           </button>
 
+          <div className="nav-section-label">ACADEMIC SETUP</div>
+          <button className={`nav-item ${tab === "campuses" ? "active" : ""}`} onClick={() => setTab("campuses")}>
+            <Building2 size={18} />
+            <span>Campuses</span>
+          </button>
+          <button className={`nav-item ${tab === "subjects" ? "active" : ""}`} onClick={() => setTab("subjects")}>
+            <BookOpen size={18} />
+            <span>Subjects</span>
+          </button>
+          <button className={`nav-item ${tab === "sections" ? "active" : ""}`} onClick={() => setTab("sections")}>
+            <Layers size={18} />
+            <span>Sections</span>
+          </button>
+          <button className={`nav-item ${tab === "timetable" ? "active" : ""}`} onClick={() => setTab("timetable")}>
+            <CalendarDays size={18} />
+            <span>Timetable</span>
+          </button>
+
           <div className="nav-section-label">MANAGEMENT</div>
           <button className={`nav-item ${tab === "students" ? "active" : ""}`} onClick={() => setTab("students")}>
             <Users size={18} />
             <span>Students</span>
           </button>
           <button className={`nav-item ${tab === "academics" ? "active" : ""}`} onClick={() => setTab("academics")}>
-            <BookOpen size={18} />
+            <BarChart2 size={18} />
             <span>Academics</span>
           </button>
           <button className={`nav-item ${tab === "attendance" ? "active" : ""}`} onClick={() => setTab("attendance")}>
@@ -1197,19 +1291,23 @@ function Dashboard() {
       {/* Main Workspace */}
       <div className="main-workspace">
         <header className="workspace-header">
-          <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--text-muted)" }}>
-            {settings.schoolName} &bull; Academic Year {settings.academicYear}
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", background: "var(--success-bg)", color: "var(--success)", border: "1px solid rgba(16,185,129,0.2)", padding: "4px 10px", borderRadius: "99px", fontWeight: 500 }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--success)" }} />
-              Live DB
-            </span>
+          <div className="header-actions">
+            <ThemeToggle />
+            <AdminProfileMenu
+              admin={admin}
+              token={token}
+              onLogout={handleLogout}
+              onSettings={() => setTab("settings")}
+            />
           </div>
         </header>
 
         <main className="workspace-body">
           {tab === "dashboard" && renderDashboardView()}
+          {tab === "campuses" && <CampusesPanel api={api} showToast={showToast} />}
+          {tab === "subjects" && <SubjectsPanel api={api} showToast={showToast} />}
+          {tab === "sections" && <SectionsPanel api={api} showToast={showToast} />}
+          {tab === "timetable" && <TimetablePanel api={api} showToast={showToast} />}
           {tab === "students" && renderStudentsView()}
           {tab === "academics" && renderAcademicsView()}
           {tab === "attendance" && renderAttendanceView()}
@@ -1311,8 +1409,11 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/setup" element={
+        <ProtectedRoute><SetupPage /></ProtectedRoute>
+      } />
       <Route path="/" element={
-        <ProtectedRoute><Dashboard /></ProtectedRoute>
+        <ProtectedRoute><SetupGuard><Dashboard /></SetupGuard></ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

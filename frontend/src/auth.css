@@ -58,11 +58,28 @@
   backdrop-filter: blur(10px);
 }
 
+.auth-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .auth-logo-text {
   font-size: 18px;
   font-weight: 800;
   color: #fff;
   letter-spacing: -0.4px;
+}
+
+.auth-logo-accent {
+  color: #a5b4fc;
+}
+
+.auth-brand-full {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.2px;
 }
 
 .auth-left-content {
@@ -121,6 +138,12 @@
   z-index: 1;
 }
 
+.auth-theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
 /* ─── RIGHT PANEL ─── */
 .auth-right {
   flex: 1;
@@ -129,6 +152,7 @@
   align-items: center;
   justify-content: center;
   padding: 40px 24px;
+  position: relative;
 }
 
 /* ─── AUTH CARD ─── */
@@ -218,7 +242,7 @@
 .auth-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
-  background: #fff;
+  background: var(--bg-secondary);
 }
 
 .auth-eye-btn {
