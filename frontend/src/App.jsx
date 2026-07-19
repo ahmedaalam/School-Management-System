@@ -1040,7 +1040,7 @@ function Dashboard() {
   const fetchAttendanceForDate = async (date) => {
     try {
       const res = await api.get(`/attendance?date=${date}`);
-      const fetchedRecords = res.data;
+      const fetchedRecords = Array.isArray(res.data) ? res.data : [];
       const newRollCall = {};
       users.forEach(u => {
         const record = fetchedRecords.find(r => r.student?._id === u._id || r.student === u._id);

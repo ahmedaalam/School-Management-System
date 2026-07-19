@@ -26,12 +26,12 @@ const studentSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to generate a unique studentId if not already present, and hash password
-studentSchema.pre("save", async function (next) {
+studentSchema.pre("save", async function () {
   if (this.isModified("password")) {
     this.password = await bcrypt.hash(this.password, 12);
   }
 
-  if (this.studentId) return next();
+  if (this.studentId) return;
 
   const model = this.constructor;
   let isUnique = false;
@@ -48,7 +48,6 @@ studentSchema.pre("save", async function (next) {
   }
 
   this.studentId = generatedId;
-  next();
 });
 
 studentSchema.methods.matchPassword = async function (enteredPassword) {

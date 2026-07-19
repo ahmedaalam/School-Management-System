@@ -2,6 +2,9 @@ import { useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE } from "../api/config";
+
+axios.defaults.baseURL = API_BASE;
 
 let interceptorRegistered = false;
 
