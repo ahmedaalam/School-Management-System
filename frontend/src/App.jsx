@@ -74,10 +74,12 @@ function ConfirmModal({ user, onConfirm, onCancel, loading }) {
 
 // ─── User Form Modal ──────────────────────────────────────────────────────────
 function UserModal({ mode, user, onClose, onSuccess, api }) {
+  const [classes, setClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(true);
   const [form, setForm] = useState({
     name: "",
     email: "",
-    grade: "Grade 9",
+    grade: "",
     status: "Active",
     gender: "Male",
     phone: "",
@@ -87,11 +89,20 @@ function UserModal({ mode, user, onClose, onSuccess, api }) {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
+    api.get("/sections")
+      .then(res => {
+        setClasses(res.data.filter(s => s.kind === "class"));
+      })
+      .catch(err => console.error(err))
+      .finally(() => setClassesLoading(false));
+  }, [api]);
+
+  useEffect(() => {
     if (mode === "edit" && user) {
       setForm({
         name: user.name || "",
         email: user.email || "",
-        grade: user.grade || "Grade 9",
+        grade: user.grade || "",
         status: user.status || "Active",
         gender: user.gender || "Male",
         phone: user.phone || "",
@@ -101,7 +112,7 @@ function UserModal({ mode, user, onClose, onSuccess, api }) {
       setForm({
         name: "",
         email: "",
-        grade: "Grade 9",
+        grade: classes[0]?.grade || "",
         status: "Active",
         gender: "Male",
         phone: "",
@@ -109,7 +120,7 @@ function UserModal({ mode, user, onClose, onSuccess, api }) {
       });
     }
     setErrors({});
-  }, [mode, user]);
+  }, [mode, user, classes]);
 
   const validate = () => {
     const e = {};
@@ -118,6 +129,7 @@ function UserModal({ mode, user, onClose, onSuccess, api }) {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email";
     if (!form.phone.trim()) e.phone = "Phone number is required";
     if (!form.dob.trim()) e.dob = "Date of birth is required";
+    if (!form.grade) e.grade = "Class is required (create one first)";
     return e;
   };
 
@@ -210,13 +222,21 @@ function UserModal({ mode, user, onClose, onSuccess, api }) {
 
             <div className="form-group">
               <label className="form-label">Grade / Class</label>
-              <select className="form-input" value={form.grade}
-                onChange={(e) => setForm((f) => ({ ...f, grade: e.target.value }))}>
-                <option value="Grade 9">Grade 9</option>
-                <option value="Grade 10">Grade 10</option>
-                <option value="Grade 11">Grade 11</option>
-                <option value="Grade 12">Grade 12</option>
-              </select>
+              {classesLoading ? (
+                <div className="form-input flex items-center gap-2 text-xs text-muted-foreground py-2"><Loader2 size={12} className="animate-spin" /> Loading classes…</div>
+              ) : (
+                <select className="form-input" value={form.grade}
+                  onChange={(e) => { setForm((f) => ({ ...f, grade: e.target.value })); setErrors((er) => ({ ...er, grade: "" })); }}>
+                  {classes.length === 0 ? (
+                    <option value="">No classes created yet</option>
+                  ) : (
+                    classes.map((c) => (
+                      <option key={c._id} value={c.grade}>{c.grade}</option>
+                    ))
+                  )}
+                </select>
+              )}
+              {errors.grade && <p className="field-error"><AlertCircle size={12} />{errors.grade}</p>}
             </div>
 
             <div className="form-group">
@@ -265,6 +285,7 @@ function Dashboard() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [activeDrawerStudent, setActiveDrawerStudent] = useState(null);
   const [setupCounts, setSetupCounts] = useState({ campuses: 0, subjects: 0, classes: 0, sections: 0, timetable: 0 });
+  const [classes, setClasses] = useState([]);
   const [analytics, setAnalytics] = useState(null);
 
   // Layout settings
@@ -303,10 +324,12 @@ function Dashboard() {
         api.get(ENDPOINTS.timetable),
       ]);
       const allSections = sec.data;
+      const classItems = allSections.filter((s) => s.kind === "class");
+      setClasses(classItems);
       setSetupCounts({
         campuses: camp.data.length,
         subjects: sub.data.length,
-        classes: allSections.filter((s) => s.kind === "class").length,
+        classes: classItems.length,
         sections: allSections.filter((s) => s.kind !== "class").length,
         timetable: tt.data.length,
       });
@@ -707,8 +730,8 @@ function Dashboard() {
         {/* Student list table */}
         <div className="card">
           {/* Filter controls */}
-          <div className="table-filters flex flex-wrap items-center gap-3 p-4 border-b border-border bg-card">
-            <div className="flex-1 min-w-[180px]">
+          <div className="table-filters flex items-center gap-3 p-4 border-b border-border bg-card overflow-x-auto whitespace-nowrap">
+            <div className="flex-1 min-w-[180px] flex-shrink-0">
               <Input
                 icon={Search}
                 placeholder="Search by name, email or ID…"
@@ -717,47 +740,49 @@ function Dashboard() {
               />
             </div>
 
-            <Select
-              className="w-auto min-w-[110px]"
-              value={filterGrade}
-              onChange={(e) => setFilterGrade(e.target.value)}
-            >
-              <option value="All">All Grades</option>
-              <option value="Grade 9">Grade 9</option>
-              <option value="Grade 10">Grade 10</option>
-              <option value="Grade 11">Grade 11</option>
-              <option value="Grade 12">Grade 12</option>
-            </Select>
+            <div className="flex-shrink-0 min-w-[120px]">
+              <Select
+                value={filterGrade}
+                onChange={(e) => setFilterGrade(e.target.value)}
+              >
+                <option value="All">All Grades</option>
+                {classes.map((c) => (
+                  <option key={c._id} value={c.grade}>{c.grade}</option>
+                ))}
+              </Select>
+            </div>
 
-            <Select
-              className="w-auto min-w-[120px]"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="All">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Graduated">Graduated</option>
-            </Select>
+            <div className="flex-shrink-0 min-w-[120px]">
+              <Select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="All">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Suspended">Suspended</option>
+                <option value="Graduated">Graduated</option>
+              </Select>
+            </div>
 
-            <Select
-              className="w-auto min-w-[130px]"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="date-desc">Newest Added</option>
-              <option value="date-asc">Oldest Added</option>
-              <option value="name-asc">Name A-Z</option>
-              <option value="name-desc">Name Z-A</option>
-            </Select>
+            <div className="flex-shrink-0 min-w-[140px]">
+              <Select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="date-desc">Newest Added</option>
+                <option value="date-asc">Oldest Added</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
+              </Select>
+            </div>
 
             {(search || filterGrade !== "All" || filterStatus !== "All") && (
-              <Button variant="ghost" size="sm" onClick={resetFilters} title="Reset Filters" className="flex items-center">
+              <Button variant="ghost" size="sm" onClick={resetFilters} title="Reset Filters" className="flex items-center flex-shrink-0">
                 <Filter size={13} className="mr-1" /> Clear
               </Button>
             )}
 
-            <Button size="sm" onClick={() => setModal("add")} className="flex items-center">
+            <Button size="sm" onClick={() => setModal("add")} className="flex items-center flex-shrink-0 ml-auto">
               <Plus size={14} className="mr-1" /> Add
             </Button>
           </div>
@@ -819,7 +844,7 @@ function Dashboard() {
                         </Badge>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" title="Edit Profile" onClick={() => { setEditTarget(user); setModal("edit"); }}>
                             <Pencil size={14} />
                           </Button>

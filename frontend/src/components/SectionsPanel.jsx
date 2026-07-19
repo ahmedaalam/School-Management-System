@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Layers, Plus, Pencil, Trash2, X, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { ENDPOINTS } from "../api/config";
 
-const GRADES = ["Grade 9", "Grade 10", "Grade 11", "Grade 12"];
-const EMPTY = { name: "", grade: "Grade 9", campus: "", capacity: 30, room: "", status: "Active" };
+const EMPTY = { name: "", grade: "", campus: "", capacity: 30, room: "", status: "Active" };
 
 export default function SectionsPanel({ api, showToast, onDataChange, embedded }) {
   const [items, setItems] = useState([]);
   const [campuses, setCampuses] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(EMPTY);
@@ -22,7 +22,9 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
         api.get(ENDPOINTS.sections),
         api.get(ENDPOINTS.campuses),
       ]);
-      setItems(secRes.data.filter((s) => s.kind !== "class"));
+      const allSections = secRes.data;
+      setItems(allSections.filter((s) => s.kind !== "class"));
+      setClasses(allSections.filter((s) => s.kind === "class"));
       setCampuses(campRes.data);
     } catch {
       showToast("Failed to load sections", "error");
@@ -34,7 +36,7 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
   const openAdd = () => {
-    setForm({ ...EMPTY, campus: campuses[0]?._id || "" });
+    setForm({ ...EMPTY, campus: campuses[0]?._id || "", grade: classes[0]?.grade || "" });
     setEditId(null);
     setModal("form");
   };
@@ -100,14 +102,14 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
             <h1 className="page-title">Class <span>Sections</span></h1>
             <p className="page-subtitle">Add class sections per grade and campus (e.g. 9-A, 10-B).</p>
           </div>
-          <button className="btn btn-primary" onClick={openAdd} disabled={campuses.length === 0}>
+          <button className="btn btn-primary" onClick={openAdd} disabled={campuses.length === 0 || classes.length === 0}>
             <Plus size={15} /> Add Class Section
           </button>
         </div>
       )}
       {embedded && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-          <button className="btn btn-primary" onClick={openAdd} disabled={campuses.length === 0}>
+          <button className="btn btn-primary" onClick={openAdd} disabled={campuses.length === 0 || classes.length === 0}>
             <Plus size={15} /> Add Class Section
           </button>
         </div>
@@ -117,6 +119,12 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
         <div className="setup-alert">
           <AlertCircle size={16} />
           Add at least one campus before creating class sections.
+        </div>
+      )}
+      {classes.length === 0 && !loading && (
+        <div className="setup-alert">
+          <AlertCircle size={16} />
+          Add at least one class (from the Classes tab) before creating sections.
         </div>
       )}
 
@@ -179,7 +187,11 @@ export default function SectionsPanel({ api, showToast, onDataChange, embedded }
                 <div className="form-group">
                   <label className="form-label">Grade Level</label>
                   <select className="form-input" value={form.grade} onChange={(e) => setForm((f) => ({ ...f, grade: e.target.value }))}>
-                    {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+                    {classes.length === 0 ? (
+                      <option value="">No classes created yet</option>
+                    ) : (
+                      classes.map((c) => <option key={c._id} value={c.grade}>{c.grade}</option>)
+                    )}
                   </select>
                 </div>
                 <div className="form-group" style={{ gridColumn: "span 2" }}>

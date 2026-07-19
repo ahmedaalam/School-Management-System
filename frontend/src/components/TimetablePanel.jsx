@@ -10,6 +10,7 @@ export default function TimetablePanel({ api, showToast, onDataChange, embedded 
   const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [campuses, setCampuses] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterSection, setFilterSection] = useState("");
   const [modal, setModal] = useState(null);
@@ -21,16 +22,18 @@ export default function TimetablePanel({ api, showToast, onDataChange, embedded 
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [slotRes, secRes, subRes, campRes] = await Promise.all([
+      const [slotRes, secRes, subRes, campRes, teachRes] = await Promise.all([
         api.get(ENDPOINTS.timetable),
         api.get(ENDPOINTS.sections),
         api.get(ENDPOINTS.subjects),
         api.get(ENDPOINTS.campuses),
+        api.get("/teachers"),
       ]);
       setSlots(slotRes.data);
       setSections(secRes.data.filter((s) => s.kind !== "class"));
       setSubjects(subRes.data);
       setCampuses(campRes.data);
+      setTeachers(Array.isArray(teachRes.data) ? teachRes.data : []);
       setFilterSection((prev) => prev || secRes.data[0]?._id || "");
     } catch {
       showToast("Failed to load timetable", "error");
@@ -274,7 +277,12 @@ export default function TimetablePanel({ api, showToast, onDataChange, embedded 
                 </div>
                 <div className="form-group">
                   <label className="form-label">Teacher</label>
-                  <input className="form-input" value={form.teacherName} onChange={(e) => setForm((f) => ({ ...f, teacherName: e.target.value }))} placeholder="Teacher name" />
+                  <select className="form-input" value={form.teacherName} onChange={(e) => setForm((f) => ({ ...f, teacherName: e.target.value }))}>
+                    <option value="">— No teacher assigned —</option>
+                    {teachers.map((t) => (
+                      <option key={t._id} value={t.name}>{t.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="modal-footer">
