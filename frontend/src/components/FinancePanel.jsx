@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { DollarSign, Search, Plus, Loader2, ArrowUpRight, ArrowDownRight, CreditCard } from "lucide-react";
+import { DollarSign, Search, Plus, Loader2, ArrowUpRight, ArrowDownRight, CreditCard, AlertCircle } from "lucide-react";
+import PageHeader from "./ui/PageHeader";
+import StatCard from "./ui/StatCard";
+import DataTable from "./ui/DataTable";
+import EmptyState from "./ui/EmptyState";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
 
 export default function FinancePanel({ api, showToast }) {
   const [fees, setFees] = useState([]);
@@ -7,156 +13,127 @@ export default function FinancePanel({ api, showToast }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("fees");
 
-  useEffect(() => {
-    fetchFinanceData();
-  }, []); // eslint-disable-line
+  useEffect(() => { fetchFinanceData(); }, []); // eslint-disable-line
 
   const fetchFinanceData = async () => {
     try {
       setLoading(true);
       const [feesRes, expensesRes] = await Promise.all([
         api.get("/finance/fees"),
-        api.get("/finance/expenses")
+        api.get("/finance/expenses"),
       ]);
       setFees(Array.isArray(feesRes.data) ? feesRes.data : []);
       setExpenses(Array.isArray(expensesRes.data) ? expensesRes.data : []);
     } catch (err) {
       console.error(err);
       showToast("Failed to fetch finance data", "error");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  const totalCollected = fees.filter(f => f.status === "Paid").reduce((acc, curr) => acc + curr.amount, 0);
-  const totalPending = fees.filter(f => f.status === "Unpaid").reduce((acc, curr) => acc + curr.amount, 0);
-  const totalExpenses = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalCollected = fees.filter(f => f.status === "Paid").reduce((a, c) => a + c.amount, 0);
+  const totalPending   = fees.filter(f => f.status === "Unpaid").reduce((a, c) => a + c.amount, 0);
+  const totalExpenses  = expenses.reduce((a, c) => a + c.amount, 0);
+
+  const feeColumns = [
+    {
+      key: "student", label: "Student",
+      render: (f) => <div className="font-medium text-foreground">{f.student?.name || "Unknown"}</div>,
+    },
+    { key: "type", label: "Type" },
+    {
+      key: "amount", label: "Amount",
+      render: (f) => <span className="font-bold text-foreground">${f.amount.toLocaleString()}</span>,
+    },
+    {
+      key: "dueDate", label: "Due Date",
+      render: (f) => new Date(f.dueDate).toLocaleDateString(),
+    },
+    {
+      key: "status", label: "Status",
+      render: (f) => (
+        <Badge
+          variant={f.status === "Paid" ? "default" : f.status === "Overdue" ? "destructive" : "secondary"}
+          className={f.status === "Paid" ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : ""}
+        >
+          {f.status}
+        </Badge>
+      ),
+    },
+  ];
+
+  const expenseColumns = [
+    { key: "category", label: "Category" },
+    {
+      key: "amount", label: "Amount",
+      render: (e) => <span className="font-bold text-destructive">${e.amount.toLocaleString()}</span>,
+    },
+    {
+      key: "date", label: "Date",
+      render: (e) => new Date(e.date).toLocaleDateString(),
+    },
+    { key: "description", label: "Description", render: (e) => e.description || "—" },
+    { key: "recordedBy", label: "By", render: (e) => e.recordedBy?.name || "System" },
+  ];
 
   return (
-    <div className="tab-view-content">
-      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-        <div>
-          <h1 className="page-title">Finance <span>& Accounts</span></h1>
-          <p className="page-subtitle">Manage student fee collections and track school expenses.</p>
-        </div>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button className="btn btn-primary" style={{ display: "flex", alignItems: "center" }}>
-            <Plus size={14} /> Record {activeTab === "fees" ? "Payment" : "Expense"}
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Finance"
+        titleHighlight="& Accounts"
+        subtitle="Track fee collections, school expenses, and financial health."
+        actions={
+          <Button>
+            <Plus size={14} className="mr-2" /> {activeTab === "fees" ? "Record Payment" : "Add Expense"}
+          </Button>
+        }
+      />
 
       {/* Stats */}
-      <div className="stats-row" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: "24px" }}>
-        <div className="stat-card">
-          <div className="stat-icon green"><ArrowUpRight size={20} /></div>
-          <div>
-            <div className="stat-value">${totalCollected.toLocaleString()}</div>
-            <div className="stat-label">Total Fees Collected</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon red"><ArrowDownRight size={20} /></div>
-          <div>
-            <div className="stat-value">${totalExpenses.toLocaleString()}</div>
-            <div className="stat-label">Total Expenses</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon purple"><CreditCard size={20} /></div>
-          <div>
-            <div className="stat-value">${totalPending.toLocaleString()}</div>
-            <div className="stat-label">Pending Fees</div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard icon={ArrowUpRight} label="Fees Collected"  value={`$${totalCollected.toLocaleString()}`} color="green" />
+        <StatCard icon={CreditCard}  label="Pending Fees"     value={`$${totalPending.toLocaleString()}`}   color="amber" />
+        <StatCard icon={ArrowDownRight} label="Total Expenses" value={`$${totalExpenses.toLocaleString()}`} color="red" />
       </div>
 
-      <div className="card">
-        <div className="card-header" style={{ display: "flex", gap: "16px", paddingBottom: 0, borderBottom: "1px solid var(--border)" }}>
-          <button className={`nav-tab ${activeTab === "fees" ? "active" : ""}`} onClick={() => setActiveTab("fees")} style={{ background: "none", border: "none", padding: "12px 16px", fontWeight: 600, color: activeTab === "fees" ? "var(--primary)" : "var(--text-muted)", borderBottom: activeTab === "fees" ? "2px solid var(--primary)" : "2px solid transparent", cursor: "pointer" }}>
-            Fee Collections
-          </button>
-          <button className={`nav-tab ${activeTab === "expenses" ? "active" : ""}`} onClick={() => setActiveTab("expenses")} style={{ background: "none", border: "none", padding: "12px 16px", fontWeight: 600, color: activeTab === "expenses" ? "var(--primary)" : "var(--text-muted)", borderBottom: activeTab === "expenses" ? "2px solid var(--primary)" : "2px solid transparent", cursor: "pointer" }}>
-            Expenses
-          </button>
+      <div className="border border-border bg-card rounded-xl">
+        {/* Tabs */}
+        <div className="flex border-b border-border">
+          {["fees", "expenses"].map(t => (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className="px-5 py-3 text-sm font-semibold capitalize transition-all border-b-2"
+              style={{
+                borderColor: activeTab === t ? "var(--primary)" : "transparent",
+                color: activeTab === t ? "var(--primary)" : "var(--text-muted)",
+                background: "transparent",
+                cursor: "pointer",
+              }}
+            >
+              {t === "fees" ? "Fee Collections" : "Expenses"}
+            </button>
+          ))}
         </div>
 
-        <div className="table-filters" style={{ padding: "16px 20px", display: "flex", gap: "10px", alignItems: "center", borderBottom: "1px solid var(--border)" }}>
-          <div className="input-with-icon" style={{ flex: 1, maxWidth: "300px" }}>
-            <span className="input-icon"><Search size={15} /></span>
-            <input className="form-input" placeholder={`Search ${activeTab}...`} />
-          </div>
-        </div>
-
-        <div className="table-wrapper">
-          {loading ? (
-            <div className="loading-container"><Loader2 className="spin-icon" /></div>
-          ) : activeTab === "fees" ? (
-            fees.length === 0 ? (
-              <div className="empty-state">
-                <DollarSign size={24} />
-                <div className="empty-title">No Fee Records</div>
-              </div>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Due Date</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fees.map(f => (
-                    <tr key={f._id}>
-                      <td>{f.student?.name || "Unknown"}</td>
-                      <td>{f.type}</td>
-                      <td style={{ fontWeight: 600 }}>${f.amount.toLocaleString()}</td>
-                      <td>{new Date(f.dueDate).toLocaleDateString()}</td>
-                      <td>
-                        <span className={`status-pill ${f.status.toLowerCase()}`}>
-                          {f.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )
+        {loading ? (
+          <div className="p-8 flex justify-center text-muted-foreground"><Loader2 size={24} className="animate-spin" /></div>
+        ) : activeTab === "fees" ? (
+          fees.length === 0 ? (
+            <div className="p-8">
+              <EmptyState icon={DollarSign} title="No Fee Records" description="Fee collection records will appear here once added." />
+            </div>
           ) : (
-            expenses.length === 0 ? (
-              <div className="empty-state">
-                <DollarSign size={24} />
-                <div className="empty-title">No Expense Records</div>
-              </div>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Recorded By</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {expenses.map(e => (
-                    <tr key={e._id}>
-                      <td>{e.category}</td>
-                      <td style={{ fontWeight: 600 }}>${e.amount.toLocaleString()}</td>
-                      <td>{new Date(e.date).toLocaleDateString()}</td>
-                      <td>{e.description || "-"}</td>
-                      <td>{e.recordedBy?.name || "System"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )
-          )}
-        </div>
+            <DataTable columns={feeColumns} data={fees} searchKeys={["type", "status"]} emptyTitle="No fees match your search" />
+          )
+        ) : (
+          expenses.length === 0 ? (
+            <div className="p-8">
+              <EmptyState icon={DollarSign} title="No Expense Records" description="School expenses will appear here once recorded." />
+            </div>
+          ) : (
+            <DataTable columns={expenseColumns} data={expenses} searchKeys={["category", "description"]} emptyTitle="No expenses match your search" />
+          )
+        )}
       </div>
     </div>
   );

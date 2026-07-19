@@ -1,75 +1,93 @@
 import React, { useState, useEffect } from "react";
 import useApi from "../hooks/useApi";
-import { Users, Search, Plus, Loader2 } from "lucide-react";
+import { Users, Plus, Loader2, Mail, Phone, User } from "lucide-react";
+import DataTable from "./ui/DataTable";
+import PageHeader from "./ui/PageHeader";
+import EmptyState from "./ui/EmptyState";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
 
 export default function ParentsPanel() {
   const api = useApi();
   const [parents, setParents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchParents();
-  }, []);
+  useEffect(() => { fetchParents(); }, []);
 
   const fetchParents = async () => {
     try {
       setLoading(true);
       const res = await api.get("/parents");
       setParents(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
-  return (
-    <div className="tab-view-content">
-      <div className="page-header">
-        <h1 className="page-title">Parents <span>Directory</span></h1>
-        <p className="page-subtitle">Manage parent profiles and their linked students.</p>
-      </div>
-
-      <div className="card">
-        <div className="table-filters" style={{ padding: "16px 20px", display: "flex", gap: "10px", alignItems: "center", borderBottom: "1px solid var(--border)" }}>
-          <div className="input-with-icon" style={{ flex: 1 }}>
-            <span className="input-icon"><Search size={15} /></span>
-            <input className="form-input" placeholder="Search parents..." />
+  const columns = [
+    {
+      key: "name", label: "Parent",
+      render: (p) => (
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+            {p.name?.slice(0, 2).toUpperCase()}
           </div>
-          <button className="btn btn-primary btn-sm" style={{ display: "flex", alignItems: "center" }}>
-            <Plus size={14} /> Add Parent
-          </button>
+          <div className="flex flex-col min-w-0">
+            <span className="font-medium text-sm text-foreground truncate">{p.name}</span>
+            <span className="text-xs text-muted-foreground truncate flex items-center gap-1"><Mail size={10} /> {p.email}</span>
+          </div>
         </div>
+      ),
+    },
+    {
+      key: "phone", label: "Phone",
+      render: (p) => (
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Phone size={12} /> {p.phone || "—"}
+        </div>
+      ),
+    },
+    {
+      key: "students", label: "Linked Students",
+      render: (p) => (
+        <Badge className="bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20">
+          {p.students?.length ?? 0} student{(p.students?.length ?? 0) !== 1 ? "s" : ""}
+        </Badge>
+      ),
+    },
+  ];
 
-        <div className="table-wrapper">
-          {loading ? (
-            <div className="loading-container"><Loader2 className="spin-icon" /></div>
-          ) : parents.length === 0 ? (
-            <div className="empty-state">
-              <Users size={24} />
-              <div className="empty-title">No Parents Found</div>
-            </div>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                </tr>
-              </thead>
-              <tbody>
-                {parents.map(parent => (
-                  <tr key={parent._id}>
-                    <td>{parent.name}</td>
-                    <td>{parent.email}</td>
-                    <td>{parent.phone}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Parents"
+        titleHighlight="Directory"
+        subtitle="Manage parent profiles and their linked students."
+        actions={
+          <Button>
+            <Plus size={14} className="mr-2" /> Add Parent
+          </Button>
+        }
+      />
+
+      <div>
+        {loading ? (
+          <div className="p-8 flex justify-center text-muted-foreground"><Loader2 size={24} className="animate-spin" /></div>
+        ) : parents.length === 0 ? (
+          <div className="border border-border bg-card rounded-xl p-8">
+            <EmptyState
+              icon={Users}
+              title="No Parents Yet"
+              description="Link parents to students to enable parent access and communications."
+            />
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={parents}
+            searchKeys={["name", "email", "phone"]}
+            emptyTitle="No parents match your search"
+          />
+        )}
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import {
   Award, UserX, UserCheck, Filter, LayoutDashboard,
   Settings, School, Shield, ClipboardList, BarChart2, TrendingUp,
   ChevronDown, CheckSquare, XSquare, Clock, Building2, Layers,
-  CalendarDays, GraduationCap, DollarSign, Bell, ChevronLeft, ChevronRight, Menu
+  CalendarDays, GraduationCap, DollarSign
 } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -30,12 +30,6 @@ import RegisterPage from "./pages/RegisterPage";
 import SetupPage from "./pages/SetupPage";
 import SetupStepPage from "./pages/SetupStepPage";
 import SetupStepGuard from "./components/SetupStepGuard";
-import { DashboardLayout } from "./layouts/DashboardLayout";
-import { Button } from "./components/ui/Button";
-import { Input } from "./components/ui/Input";
-import { Select } from "./components/ui/Select";
-import { Badge } from "./components/ui/Badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./components/ui/Table";
 import { ENDPOINTS } from "./api/config";
 import { BRAND } from "./config/brand";
 import "./App.css";
@@ -269,7 +263,6 @@ function Dashboard() {
 
   // Layout settings
   const [tab, setTab] = useState("dashboard");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settings, setSettings] = useState({
     schoolName: "St. Jude Academy",
     academicYear: "2025-2026",
@@ -707,131 +700,119 @@ function Dashboard() {
         {/* Student list table */}
         <div className="card">
           {/* Filter controls */}
-          <div className="table-filters flex flex-wrap items-center gap-3 p-4 border-b border-border bg-card">
-            <div className="flex-1 min-w-[180px]">
-              <Input
-                icon={Search}
-                placeholder="Search by name, email or ID…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+          <div className="table-filters" style={{ padding: "16px 20px", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", borderBottom: "1px solid var(--border)", background: "var(--bg-primary)" }}>
+            <div className="input-with-icon" style={{ flex: 1, minWidth: "180px" }}>
+              <span className="input-icon"><Search size={15} /></span>
+              <input id="search-input" className="form-input" placeholder="Search by name, email or ID…"
+                value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
 
-            <Select
-              className="w-auto min-w-[110px]"
-              value={filterGrade}
-              onChange={(e) => setFilterGrade(e.target.value)}
-            >
+            <select className="form-input" style={{ width: "auto", minWidth: "110px" }} value={filterGrade}
+              onChange={(e) => setFilterGrade(e.target.value)}>
               <option value="All">All Grades</option>
               <option value="Grade 9">Grade 9</option>
               <option value="Grade 10">Grade 10</option>
               <option value="Grade 11">Grade 11</option>
               <option value="Grade 12">Grade 12</option>
-            </Select>
+            </select>
 
-            <Select
-              className="w-auto min-w-[120px]"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
+            <select className="form-input" style={{ width: "auto", minWidth: "120px" }} value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}>
               <option value="All">All Statuses</option>
               <option value="Active">Active</option>
               <option value="Suspended">Suspended</option>
               <option value="Graduated">Graduated</option>
-            </Select>
+            </select>
 
-            <Select
-              className="w-auto min-w-[130px]"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
+            <select className="form-input" style={{ width: "auto", minWidth: "130px" }} value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}>
               <option value="date-desc">Newest Added</option>
               <option value="date-asc">Oldest Added</option>
               <option value="name-asc">Name A-Z</option>
               <option value="name-desc">Name Z-A</option>
-            </Select>
+            </select>
 
             {(search || filterGrade !== "All" || filterStatus !== "All") && (
-              <Button variant="ghost" size="sm" onClick={resetFilters} title="Reset Filters" className="flex items-center">
-                <Filter size={13} className="mr-1" /> Clear
-              </Button>
+              <button className="btn btn-ghost btn-sm" onClick={resetFilters} title="Reset Filters" style={{ display: "flex", alignItems: "center", padding: "8px 10px" }}>
+                <Filter size={13} /> Clear
+              </button>
             )}
 
-            <Button size="sm" onClick={() => setModal("add")} className="flex items-center">
-              <Plus size={14} className="mr-1" /> Add
-            </Button>
+            <button id="add-user-btn" className="btn btn-primary btn-sm" onClick={() => setModal("add")} style={{ display: "flex", alignItems: "center" }}>
+              <Plus size={14} /> Add
+            </button>
           </div>
 
-          <div className="p-0">
+          <div className="table-wrapper">
             {loading ? (
-              <div className="p-8 flex items-center justify-center text-muted-foreground"><Loader2 className="animate-spin mr-2" /> Loading student records…</div>
+              <div className="loading-container"><div className="loading-spinner-lg" /><span>Loading student records…</span></div>
             ) : sorted.length === 0 ? (
-              <div className="p-8 flex flex-col items-center justify-center text-center">
-                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground mb-3"><Users size={24} /></div>
-                <div className="font-semibold text-lg text-foreground">{search || filterGrade !== "All" || filterStatus !== "All" ? "No results found" : "No student records"}</div>
-                <div className="text-sm text-muted-foreground">
+              <div className="empty-state">
+                <div className="empty-icon"><Users size={24} /></div>
+                <div className="empty-title">{search || filterGrade !== "All" || filterStatus !== "All" ? "No results found" : "No student records"}</div>
+                <div className="empty-desc">
                   {search || filterGrade !== "All" || filterStatus !== "All"
                     ? "Try clearing filters to see more results"
                     : "Use the Quick Register form or click Add to register students"}
                 </div>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Grade</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Student</th>
+                    <th>Grade</th>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: "right" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {sorted.map((user) => (
-                    <TableRow key={user._id} onClick={() => setActiveDrawerStudent(user)} className="cursor-pointer group">
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono text-xs text-muted-foreground">{user.studentId || "PENDING"}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold">{getInitials(user.name)}</div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-medium text-sm text-foreground truncate">{user.name}</span>
-                            <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                    <tr key={user._id} className="student-row" onClick={() => setActiveDrawerStudent(user)} style={{ cursor: "pointer" }}>
+                      <td>
+                        <span className="row-num" style={{ fontStyle: "normal", fontSize: "11px", padding: "2px 6px", width: "auto", height: "auto" }}>
+                          {user.studentId || "PENDING"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="user-cell">
+                          <div className="avatar">{getInitials(user.name)}</div>
+                          <div>
+                            <div className="user-name">{user.name}</div>
+                            <div className="user-id">{user.email}</div>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className="bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20">{user.grade || "N/A"}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs text-muted-foreground">{user.phone || "N/A"}</span>
+                      </td>
+                      <td>
+                        <span className="badge badge-indigo">{user.grade || "N/A"}</span>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                          <span style={{ fontSize: "12.5px" }}>{user.phone || "N/A"}</span>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={user.status === "Active" ? "default" : user.status === "Suspended" ? "destructive" : "secondary"}
-                          className={user.status === "Active" ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : ""}
-                        >
+                      </td>
+                      <td>
+                        <span className={`status-pill ${(user.status || "Active").toLowerCase()}`}>
+                          <span className="pill-dot"></span>
                           {user.status || "Active"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" title="Edit Profile" onClick={() => { setEditTarget(user); setModal("edit"); }}>
-                            <Pencil size={14} />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Delete Profile" onClick={() => setDeleteTarget(user)}>
-                            <Trash2 size={14} />
-                          </Button>
+                        </span>
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <div className="actions-cell">
+                          <button className="btn-icon edit" title="Edit Profile" onClick={() => { setEditTarget(user); setModal("edit"); }}>
+                            <Pencil size={15} />
+                          </button>
+                          <button className="btn-icon delete" title="Delete Profile" onClick={() => setDeleteTarget(user)}>
+                            <Trash2 size={15} />
+                          </button>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
             )}
           </div>
         </div>
@@ -1297,29 +1278,122 @@ function Dashboard() {
   };
 
   return (
-    <>
-      <DashboardLayout
-      admin={admin}
-      onLogout={handleLogout}
-      sidebarCollapsed={sidebarCollapsed}
-      setSidebarCollapsed={setSidebarCollapsed}
-      activeTab={tab}
-      onTabChange={setTab}
-    >
-      {tab === "dashboard" && renderDashboardView()}
-      {tab === "campuses" && <CampusesPanel api={api} showToast={showToast} />}
-      {tab === "subjects" && <SubjectsPanel api={api} showToast={showToast} />}
-      {tab === "classes" && <SetupClassStep api={api} showToast={showToast} />}
-      {tab === "sections" && <SectionsPanel api={api} showToast={showToast} />}
-      {tab === "timetable" && <TimetablePanel api={api} showToast={showToast} />}
-      {tab === "teachers" && <TeachersPanel />}
-      {tab === "parents" && <ParentsPanel />}
-      {tab === "students" && renderStudentsView()}
-      {tab === "academics" && renderAcademicsView()}
-      {tab === "attendance" && renderAttendanceView()}
-      {tab === "finance" && <FinancePanel api={api} showToast={showToast} />}
-      {tab === "settings" && renderSettingsView()}
-    </DashboardLayout>
+    <div className="app-layout">
+      {/* Sidebar Panel */}
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <div className="sidebar-logo"><School size={22} /></div>
+          <div className="sidebar-brand-text">
+            <div className="sidebar-logo-text sidebar-logo-full">{BRAND.fullName}</div>
+          </div>
+        </div>
+
+        <nav className="sidebar-nav">
+          <div className="nav-section-label">OVERVIEW</div>
+          <button className={`nav-item ${tab === "dashboard" ? "active" : ""}`} onClick={() => setTab("dashboard")}>
+            <LayoutDashboard size={18} />
+            <span>Dashboard</span>
+          </button>
+
+          <div className="nav-section-label">ACADEMIC SETUP</div>
+          <button className={`nav-item ${tab === "campuses" ? "active" : ""}`} onClick={() => setTab("campuses")}>
+            <Building2 size={18} />
+            <span>Campuses</span>
+          </button>
+          <button className={`nav-item ${tab === "subjects" ? "active" : ""}`} onClick={() => setTab("subjects")}>
+            <BookOpen size={18} />
+            <span>Subjects</span>
+          </button>
+          <button className={`nav-item ${tab === "classes" ? "active" : ""}`} onClick={() => setTab("classes")}>
+            <GraduationCap size={18} />
+            <span>Classes</span>
+          </button>
+          <button className={`nav-item ${tab === "sections" ? "active" : ""}`} onClick={() => setTab("sections")}>
+            <Layers size={18} />
+            <span>Class Sections</span>
+          </button>
+          <button className={`nav-item ${tab === "timetable" ? "active" : ""}`} onClick={() => setTab("timetable")}>
+            <CalendarDays size={18} />
+            <span>Timetable</span>
+          </button>
+
+          <div className="nav-section-label">MANAGEMENT</div>
+          <button className={`nav-item ${tab === "teachers" ? "active" : ""}`} onClick={() => setTab("teachers")}>
+            <Users size={18} />
+            <span>Teachers</span>
+          </button>
+          <button className={`nav-item ${tab === "parents" ? "active" : ""}`} onClick={() => setTab("parents")}>
+            <Users size={18} />
+            <span>Parents</span>
+          </button>
+          <button className={`nav-item ${tab === "students" ? "active" : ""}`} onClick={() => setTab("students")}>
+            <Users size={18} />
+            <span>Students</span>
+          </button>
+          <button className={`nav-item ${tab === "academics" ? "active" : ""}`} onClick={() => setTab("academics")}>
+            <BarChart2 size={18} />
+            <span>Academics</span>
+          </button>
+          <button className={`nav-item ${tab === "attendance" ? "active" : ""}`} onClick={() => setTab("attendance")}>
+            <ClipboardList size={18} />
+            <span>Attendance</span>
+          </button>
+          <button className={`nav-item ${tab === "finance" ? "active" : ""}`} onClick={() => setTab("finance")}>
+            <DollarSign size={18} />
+            <span>Finance</span>
+          </button>
+
+          <div className="nav-section-label">SYSTEM</div>
+          <button className={`nav-item ${tab === "settings" ? "active" : ""}`} onClick={() => setTab("settings")}>
+            <Settings size={18} />
+            <span>Settings</span>
+          </button>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="admin-profile">
+            <div className="admin-avatar">{getInitials(admin?.name || "A")}</div>
+            <div className="admin-details">
+              <span className="admin-name">{admin?.name}</span>
+              <span className="admin-role">System Admin</span>
+            </div>
+          </div>
+          <button className="btn btn-ghost btn-sm logout-btn sidebar-logout" onClick={handleLogout} style={{ width: "100%", marginTop: "10px", display: "flex", justifyContent: "center" }}>
+            <LogOut size={14} /> Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Workspace */}
+      <div className="main-workspace">
+        <header className="workspace-header">
+          <div className="header-actions">
+            <ThemeToggle />
+            <AdminProfileMenu
+              admin={admin}
+              token={token}
+              onLogout={handleLogout}
+              onSettings={() => setTab("settings")}
+            />
+          </div>
+        </header>
+
+        <main className="workspace-body">
+          {tab === "dashboard" && renderDashboardView()}
+          {tab === "campuses" && <CampusesPanel api={api} showToast={showToast} />}
+          {tab === "subjects" && <SubjectsPanel api={api} showToast={showToast} />}
+          {tab === "classes" && <SetupClassStep api={api} showToast={showToast} />}
+          {tab === "sections" && <SectionsPanel api={api} showToast={showToast} />}
+          {tab === "timetable" && <TimetablePanel api={api} showToast={showToast} />}
+          {tab === "teachers" && <TeachersPanel />}
+          {tab === "parents" && <ParentsPanel />}
+          {tab === "students" && renderStudentsView()}
+          {tab === "academics" && renderAcademicsView()}
+          {tab === "attendance" && renderAttendanceView()}
+          {tab === "finance" && <FinancePanel api={api} showToast={showToast} />}
+          {tab === "settings" && renderSettingsView()}
+        </main>
+      </div>
 
       {/* Slide-out details drawer */}
       {activeDrawerStudent && (
@@ -1403,7 +1477,7 @@ function Dashboard() {
       )}
 
       <Toast toasts={toasts} />
-    </>
+    </div>
   );
 }
 
