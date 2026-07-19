@@ -21,12 +21,6 @@ const studentSchema = new mongoose.Schema(
       english: { type: String, default: "A" },
       history: { type: String, default: "A" }
     },
-    attendance: [
-      {
-        date: { type: String, required: true },
-        status: { type: String, enum: ["Present", "Absent", "Late"], default: "Present" }
-      }
-    ]
   },
   { timestamps: true }
 );

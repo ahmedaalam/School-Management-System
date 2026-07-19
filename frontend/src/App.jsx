@@ -24,6 +24,7 @@ import SetupClassStep from "./components/SetupClassStep";
 import TimetablePanel from "./components/TimetablePanel";
 import TeachersPanel from "./components/TeachersPanel";
 import ParentsPanel from "./components/ParentsPanel";
+import FinancePanel from "./components/FinancePanel";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import SetupPage from "./pages/SetupPage";
@@ -980,33 +981,49 @@ function Dashboard() {
   const [attendanceSelected, setAttendanceSelected] = useState(null);
   const [attendanceSaving, setAttendanceSaving] = useState(false);
   const [rollCall, setRollCall] = useState({});
+  const [studentLog, setStudentLog] = useState([]);
 
-  // Build rollcall from current students for a given date
-  const buildRollCall = (date, studentList) => {
-    const init = {};
-    studentList.forEach(u => {
-      const entry = (u.attendance || []).find(a => a.date === date);
-      init[u._id] = entry?.status || "Present";
-    });
-    return init;
+  // Fetch rollcall for a specific date
+  const fetchAttendanceForDate = async (date) => {
+    try {
+      const res = await api.get(`/attendance?date=${date}`);
+      const fetchedRecords = res.data;
+      const newRollCall = {};
+      users.forEach(u => {
+        const record = fetchedRecords.find(r => r.student?._id === u._id || r.student === u._id);
+        newRollCall[u._id] = record ? record.status : "Present";
+      });
+      setRollCall(newRollCall);
+    } catch (err) {
+      console.error("Failed to fetch attendance:", err);
+    }
   };
 
   useEffect(() => {
     if (users.length > 0) {
-      setRollCall(buildRollCall(attendanceDate, users));
+      fetchAttendanceForDate(attendanceDate);
     }
   }, [attendanceDate, users]); // eslint-disable-line
+
+  useEffect(() => {
+    if (attendanceSelected) {
+      api.get(`/attendance/student/${attendanceSelected}`)
+        .then(res => setStudentLog(res.data))
+        .catch(console.error);
+    } else {
+      setStudentLog([]);
+    }
+  }, [attendanceSelected]);
 
   const handleSaveAttendance = async () => {
     setAttendanceSaving(true);
     try {
-      for (const u of users) {
-        const existingAttendance = (u.attendance || []).filter(a => a.date !== attendanceDate);
-        const updated = [...existingAttendance, { date: attendanceDate, status: rollCall[u._id] || "Present" }];
-        await api.put(`${API}/${u._id}`, { ...u, attendance: updated });
-      }
+      const records = users.map(u => ({
+        student: u._id,
+        status: rollCall[u._id] || "Present"
+      }));
+      await api.post("/attendance/bulk", { date: attendanceDate, records });
       showToast("Attendance saved for " + attendanceDate, "success");
-      await fetchUsers();
     } catch {
       showToast("Failed to save attendance", "error");
     } finally {
@@ -1021,7 +1038,6 @@ function Dashboard() {
     const attendanceRate = users.length > 0 ? Math.round((presentCount / users.length) * 100) : 0;
 
     const selectedStudent = attendanceSelected ? users.find(u => u._id === attendanceSelected) : null;
-    const studentLog = selectedStudent ? (selectedStudent.attendance || []).sort((a, b) => new Date(b.date) - new Date(a.date)) : [];
 
     return (
       <div className="tab-view-content">
@@ -1288,6 +1304,10 @@ function Dashboard() {
             <ClipboardList size={18} />
             <span>Attendance</span>
           </button>
+          <button className={`nav-item ${tab === "finance" ? "active" : ""}`} onClick={() => setTab("finance")}>
+            <DollarSign size={18} />
+            <span>Finance</span>
+          </button>
 
           <div className="nav-section-label">SYSTEM</div>
           <button className={`nav-item ${tab === "settings" ? "active" : ""}`} onClick={() => setTab("settings")}>
@@ -1336,6 +1356,7 @@ function Dashboard() {
           {tab === "students" && renderStudentsView()}
           {tab === "academics" && renderAcademicsView()}
           {tab === "attendance" && renderAttendanceView()}
+          {tab === "finance" && <FinancePanel api={api} showToast={showToast} />}
           {tab === "settings" && renderSettingsView()}
         </main>
       </div>
