@@ -259,6 +259,7 @@ function Dashboard() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [activeDrawerStudent, setActiveDrawerStudent] = useState(null);
   const [setupCounts, setSetupCounts] = useState({ campuses: 0, subjects: 0, classes: 0, sections: 0, timetable: 0 });
+  const [analytics, setAnalytics] = useState(null);
 
   // Layout settings
   const [tab, setTab] = useState("dashboard");
@@ -305,7 +306,14 @@ function Dashboard() {
     } catch { /* silent */ }
   }, []); // eslint-disable-line
 
-  useEffect(() => { fetchUsers(); fetchSetupCounts(); }, []); // eslint-disable-line
+  const fetchAnalytics = async () => {
+    try {
+      const res = await api.get("/analytics/summary");
+      setAnalytics(res.data);
+    } catch { /* silent */ }
+  };
+
+  useEffect(() => { fetchUsers(); fetchSetupCounts(); fetchAnalytics(); }, []); // eslint-disable-line
 
   const handleDelete = async () => {
     setDeleteLoading(true);
@@ -429,6 +437,32 @@ function Dashboard() {
           <p className="page-subtitle">Welcome back, {admin?.name || "Admin"}. Overall performance and insights across your school.</p>
         </div>
 
+        {/* AI Insights Section */}
+        {analytics && analytics.insights && (
+          <div className="card" style={{ marginBottom: "24px" }}>
+            <div className="card-header"><span className="card-title">✨ AI Insights</span></div>
+            <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {analytics.insights.map((insight, idx) => (
+                <div key={idx} style={{ 
+                  padding: "12px 16px", 
+                  borderRadius: "8px",
+                  background: insight.type === "positive" ? "rgba(34, 197, 94, 0.1)" : 
+                              insight.type === "warning" ? "rgba(245, 158, 11, 0.1)" : "rgba(99, 102, 241, 0.1)",
+                  color: insight.type === "positive" ? "var(--success)" : 
+                         insight.type === "warning" ? "#d97706" : "var(--primary)",
+                  display: "flex", alignItems: "center", gap: "12px",
+                  fontWeight: 500, fontSize: "14px"
+                }}>
+                  <div style={{ fontSize: "18px" }}>
+                    {insight.type === "positive" ? "📈" : insight.type === "warning" ? "⚠️" : "💡"}
+                  </div>
+                  {insight.text}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Key Metrics */}
         <div className="analytics-summary-banner">
           <div className="analytics-summary-item">
@@ -437,8 +471,8 @@ function Dashboard() {
           </div>
           <div className="analytics-summary-divider" />
           <div className="analytics-summary-item">
-            <span className="analytics-summary-value">{infraTotal}</span>
-            <span className="analytics-summary-label">Academic Resources</span>
+            <span className="analytics-summary-value">{analytics?.counts?.teachers || 0}</span>
+            <span className="analytics-summary-label">Total Teachers</span>
           </div>
           <div className="analytics-summary-divider" />
           <div className="analytics-summary-item">
