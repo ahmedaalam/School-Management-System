@@ -8,7 +8,7 @@ import {
   Award, UserX, UserCheck, Filter, LayoutDashboard,
   Settings, School, Shield, ClipboardList, BarChart2, TrendingUp,
   ChevronDown, CheckSquare, XSquare, Clock, Building2, Layers,
-  CalendarDays, GraduationCap
+  CalendarDays, GraduationCap, DollarSign
 } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -34,7 +34,7 @@ import { ENDPOINTS } from "./api/config";
 import { BRAND } from "./config/brand";
 import "./App.css";
 
-const API = ENDPOINTS.users;
+const API = ENDPOINTS.students;
 
 // ─── Confirm Delete Modal ─────────────────────────────────────────────────────
 function ConfirmModal({ user, onConfirm, onCancel, loading }) {

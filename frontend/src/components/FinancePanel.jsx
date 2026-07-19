@@ -18,8 +18,8 @@ export default function FinancePanel({ api, showToast }) {
         api.get("/finance/fees"),
         api.get("/finance/expenses")
       ]);
-      setFees(feesRes.data);
-      setExpenses(expensesRes.data);
+      setFees(Array.isArray(feesRes.data) ? feesRes.data : []);
+      setExpenses(Array.isArray(expensesRes.data) ? expensesRes.data : []);
     } catch (err) {
       console.error(err);
       showToast("Failed to fetch finance data", "error");

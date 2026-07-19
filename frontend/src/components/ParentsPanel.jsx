@@ -15,7 +15,7 @@ export default function ParentsPanel() {
     try {
       setLoading(true);
       const res = await api.get("/parents");
-      setParents(res.data);
+      setParents(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
     } finally {

@@ -14,7 +14,7 @@ export default function SetupStudentsStep({ api, showToast, onDataChange, embedd
   const fetchStudents = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await api.get(ENDPOINTS.users);
+      const res = await api.get(ENDPOINTS.students);
       setStudents(res.data);
     } catch {
       showToast("Failed to load students", "error");
@@ -41,7 +41,7 @@ export default function SetupStudentsStep({ api, showToast, onDataChange, embedd
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setSaving(true);
     try {
-      await api.post(ENDPOINTS.users, form);
+      await api.post(ENDPOINTS.students, form);
       showToast("Student enrolled successfully", "success");
       setForm(EMPTY);
       setErrors({});

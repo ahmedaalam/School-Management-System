@@ -15,7 +15,7 @@ export default function TeachersPanel() {
     try {
       setLoading(true);
       const res = await api.get("/teachers");
-      setTeachers(res.data);
+      setTeachers(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
     } finally {
