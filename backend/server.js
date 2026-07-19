@@ -17,8 +17,10 @@ mongoose
     .catch((err) => { console.log(err); });
 
 // Import Routes
-const userRoutes = require("./routes/userRoutes");
+const studentRoutes = require("./routes/studentRoutes");
 const authRoutes = require("./routes/authRoutes");
+const teacherRoutes = require("./routes/teacherRoutes");
+const parentRoutes = require("./routes/parentRoutes");
 const campusRoutes = require("./routes/campusRoutes");
 const subjectRoutes = require("./routes/subjectRoutes");
 const sectionRoutes = require("./routes/sectionRoutes");
@@ -26,7 +28,9 @@ const timetableRoutes = require("./routes/timetableRoutes");
 
 // Mount Routes
 app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
+app.use("/teachers", teacherRoutes);
+app.use("/parents", parentRoutes);
+app.use("/students", studentRoutes);
 app.use("/campuses", campusRoutes);
 app.use("/subjects", subjectRoutes);
 app.use("/sections", sectionRoutes);

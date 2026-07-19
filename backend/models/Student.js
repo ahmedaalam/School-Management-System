@@ -1,13 +1,16 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
-const userSchema = new mongoose.Schema(
+const studentSchema = new mongoose.Schema(
   {
     studentId: { type: String, unique: true },
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true, minlength: 6, default: "student123" },
     grade: { type: String, required: true },
     section: { type: mongoose.Schema.Types.ObjectId, ref: "Section" },
     campus: { type: mongoose.Schema.Types.ObjectId, ref: "Campus" },
+    parent: { type: mongoose.Schema.Types.ObjectId, ref: "Parent" },
     status: { type: String, enum: ["Active", "Suspended", "Graduated"], default: "Active" },
     gender: { type: String, enum: ["Male", "Female", "Other"], required: true },
     phone: { type: String, required: true, trim: true },
@@ -28,9 +31,13 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Pre-save hook to generate a unique studentId if not already present
-userSchema.pre("save", async function () {
-  if (this.studentId) return;
+// Pre-save hook to generate a unique studentId if not already present, and hash password
+studentSchema.pre("save", async function (next) {
+  if (this.isModified("password")) {
+    this.password = await bcrypt.hash(this.password, 12);
+  }
+
+  if (this.studentId) return next();
 
   const model = this.constructor;
   let isUnique = false;
@@ -47,6 +54,11 @@ userSchema.pre("save", async function () {
   }
 
   this.studentId = generatedId;
+  next();
 });
 
-module.exports = mongoose.model("User", userSchema);
+studentSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+module.exports = mongoose.model("Student", studentSchema);

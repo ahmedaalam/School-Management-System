@@ -22,6 +22,8 @@ import SubjectsPanel from "./components/SubjectsPanel";
 import SectionsPanel from "./components/SectionsPanel";
 import SetupClassStep from "./components/SetupClassStep";
 import TimetablePanel from "./components/TimetablePanel";
+import TeachersPanel from "./components/TeachersPanel";
+import ParentsPanel from "./components/ParentsPanel";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import SetupPage from "./pages/SetupPage";
@@ -1266,6 +1268,14 @@ function Dashboard() {
           </button>
 
           <div className="nav-section-label">MANAGEMENT</div>
+          <button className={`nav-item ${tab === "teachers" ? "active" : ""}`} onClick={() => setTab("teachers")}>
+            <Users size={18} />
+            <span>Teachers</span>
+          </button>
+          <button className={`nav-item ${tab === "parents" ? "active" : ""}`} onClick={() => setTab("parents")}>
+            <Users size={18} />
+            <span>Parents</span>
+          </button>
           <button className={`nav-item ${tab === "students" ? "active" : ""}`} onClick={() => setTab("students")}>
             <Users size={18} />
             <span>Students</span>
@@ -1321,6 +1331,8 @@ function Dashboard() {
           {tab === "classes" && <SetupClassStep api={api} showToast={showToast} />}
           {tab === "sections" && <SectionsPanel api={api} showToast={showToast} />}
           {tab === "timetable" && <TimetablePanel api={api} showToast={showToast} />}
+          {tab === "teachers" && <TeachersPanel />}
+          {tab === "parents" && <ParentsPanel />}
           {tab === "students" && renderStudentsView()}
           {tab === "academics" && renderAcademicsView()}
           {tab === "attendance" && renderAttendanceView()}

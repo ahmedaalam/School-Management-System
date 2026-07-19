@@ -9,6 +9,7 @@ const sectionSchema = new mongoose.Schema(
     capacity: { type: Number, default: 30, min: 1 },
     room: { type: String, trim: true },
     status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
+    teacher: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher" },
   },
   { timestamps: true }
 );

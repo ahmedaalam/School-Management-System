@@ -1,16 +1,16 @@
 const express = require("express");
 const router = express.Router();
-const User = require("../models/User");
+const Student = require("../models/Student");
 const { verifyToken } = require("../middleware/authMiddleware");
 
 // All routes protected by JWT
 // Create
 router.post("/", verifyToken, async (req, res) => {
     try {
-        const user = await User.create(req.body);
-        res.status(201).json(user);
+        const student = await Student.create(req.body);
+        res.status(201).json(student);
     } catch (err) {
-        console.error("POST /users error:", err);
+        console.error("POST /students error:", err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -18,13 +18,14 @@ router.post("/", verifyToken, async (req, res) => {
 // Read all
 router.get("/", verifyToken, async (req, res) => {
     try {
-        const users = await User.find()
+        const students = await Student.find()
             .populate("section", "name grade")
             .populate("campus", "name code")
+            .populate("parent", "name email")
             .sort({ createdAt: -1 });
-        res.json(users);
+        res.json(students);
     } catch (err) {
-        console.error("GET /users error:", err);
+        console.error("GET /students error:", err);
         res.status(500).json({ message: err.message });
     }
 });
@@ -32,15 +33,15 @@ router.get("/", verifyToken, async (req, res) => {
 // Update
 router.put("/:id", verifyToken, async (req, res) => {
     try {
-        const updatedUser = await User.findByIdAndUpdate(
+        const updatedStudent = await Student.findByIdAndUpdate(
             req.params.id,
             req.body,
             { new: true, runValidators: true }
         );
-        if (!updatedUser) return res.status(404).json({ message: "User not found." });
-        res.json(updatedUser);
+        if (!updatedStudent) return res.status(404).json({ message: "Student not found." });
+        res.json(updatedStudent);
     } catch (err) {
-        console.error("PUT /users/:id error:", err);
+        console.error("PUT /students/:id error:", err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -48,10 +49,10 @@ router.put("/:id", verifyToken, async (req, res) => {
 // Delete
 router.delete("/:id", verifyToken, async (req, res) => {
     try {
-        await User.findByIdAndDelete(req.params.id);
+        await Student.findByIdAndDelete(req.params.id);
         res.json({ message: "Deleted successfully." });
     } catch (err) {
-        console.error("DELETE /users/:id error:", err);
+        console.error("DELETE /students/:id error:", err);
         res.status(500).json({ message: err.message });
     }
 });

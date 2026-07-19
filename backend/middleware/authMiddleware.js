@@ -11,11 +11,20 @@ const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.admin = decoded;
+    req.user = decoded;
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token." });
   }
 };
 
-module.exports = { verifyToken };
+const verifyRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Access denied. Insufficient permissions." });
+    }
+    next();
+  };
+};
+
+module.exports = { verifyToken, verifyRole };

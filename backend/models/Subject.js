@@ -8,6 +8,7 @@ const subjectSchema = new mongoose.Schema(
     description: { type: String, trim: true },
     credits: { type: Number, default: 1, min: 1 },
     status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
+    teacher: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher" },
   },
   { timestamps: true }
 );
